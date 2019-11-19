@@ -48,7 +48,7 @@ webserver.get('/validate', (req, res) => {
             <form action="${request.protocol.concat('://', request.headers.host, request.route.path)}" method="${request.method.toLocaleLowerCase()}" novalidate>
                 <fieldset>
                     <legend class="legend" style="color:red;">${errorText}</legend>
-                    <p><input type="text" name="username" placeholder="Login" autocomplete="off" value="${request.query.username}"
+                    <p><input type="text" name="username" placeholder="Login" autocomplete="off" value="${request.query.username||''}"
                             onfocus='this.placeholder=""'
                                 onblur='this.value?this.placeholder="":this.placeholder="Login"' required autofocus></p>
     
