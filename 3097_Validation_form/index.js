@@ -5,10 +5,10 @@ const port = 7980;
 webserver.get('/validate', (req, res) => {
      
     
-    let validateCredentials = (loginName, loginPass) => {
+    const validateCredentials = (loginName, loginPass) => {
         const pKey = 'pass';
         let errorS = null;
-        let credentialsHash = {
+        const credentialsHash = {
             'superboss': {
                 pass: '1q2w3e4r',
                 realName: 'Веня',
@@ -29,7 +29,7 @@ webserver.get('/validate', (req, res) => {
     };
     
 
-    let createErrorResponseBody = (errorText, request) =>
+    const createErrorResponseBody = (errorText, request) =>
         `
         <!DOCTYPE html>
         <html>
@@ -66,7 +66,7 @@ webserver.get('/validate', (req, res) => {
         `
     ;
 
-    let createSuccessResponseBody = personName => 
+    const createSuccessResponseBody = personName => 
         `
         <!DOCTYPE html>
         <html>
@@ -87,7 +87,7 @@ webserver.get('/validate', (req, res) => {
         `
     ;
 
-    let fatalErrMarkup =
+    const fatalErrMarkup =
     `
     <!DOCTYPE html>
         <html>
