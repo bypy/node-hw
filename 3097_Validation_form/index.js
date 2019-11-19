@@ -2,6 +2,42 @@ const express = require('express');
 const webserver = express();
 const port = 7980;
 
+webserver.get('/', (req, res) => {
+    res.send( `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Ошибка!</title>
+    <style>
+        html { font-size: 200%; }
+        form { max-width: 20em; margin-left: auto; margin-right: auto; }
+        form * { font-size: inherit; }
+    </style>
+</head>
+<body>
+    <form action="${req.protocol.concat('://', req.headers.host, '/validate')}" method="${req.method.toLocaleLowerCase()}" novalidate>
+        <fieldset>
+            <legend class="legend" style="color:red;">Требуется авторизация</legend>
+            <p><input type="text" name="username" placeholder="Login" autocomplete="off" onfocus='this.placeholder=""'
+                        onblur='this.value?this.placeholder="":this.placeholder="Login"' required autofocus></p>
+
+            <p><input type="password" name="password" placeholder="Password" autocomplete="off"
+                    onfocus='this.placeholder=""'
+                        onblur='this.placeholder?this.placeholder="":this.placeholder="Password"' required></p>
+
+            <p>
+                <input type="submit" value="Enter">
+            </p>
+        </fieldset>
+    </form>
+</body>
+</html>
+    `);
+});
+
 webserver.get('/validate', (req, res) => {
      
     
