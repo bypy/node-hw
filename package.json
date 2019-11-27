@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "server": "node 3097_Validation_form/index.js",
-    "debug": "node --inspect 3097_Validation_form/index.js"
+    "server": "node Votes/index.js",
+    "debug": "node --inspect Votes/index.js"
   },
   "author": "",
   "license": "ISC",
