@@ -13,8 +13,8 @@ let performRequest = function(url) {
             else
                 reject(xhr.statusText);
         };
-        xhr.onerror = function() {
-            reject(url);
+        xhr.onerror = function(e) {
+            reject(e);
         };
         xhr.open('GET', url);
         xhr.send();   
@@ -29,16 +29,18 @@ let createInputs = questions => {
 };
 
 let createForm = inputs => {
+    let submit = `<input type="submit">`;
     let formMarkup = 
         `<form id="vote-form" action="#" onsubmit="sendAndUpdate()">
             ${inputs}
+            ${submit}
         </form>`;
     return formMarkup;
     
 };
 
-let createErrorResponse = e => {
-    console.log(`Ошибка ${e}`);
+let showErrorURL = url => {
+    console.log(`Ошибка получения содержимого страницы ${url}`);
 };
 
 let getVariants = performRequest(variantsURL);
@@ -51,8 +53,9 @@ getVariants
     .then( formMarkup => {
         formWrapper.innerHTML = formMarkup;
     })
+    .then(  )
     .catch(function(e) {
-        createErrorResponse(e);
+        console.log(e);
     })
 ;
         
