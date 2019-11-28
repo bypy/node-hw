@@ -2,7 +2,7 @@ const express = require('express');
 const webserver = express();
 const servPort = 7980;
 
-webserver.get('/', (req, res) => {
+webserver.get('/voting', (req, res) => {
     let scriptBody = 
         `'use strict';
         
@@ -29,7 +29,10 @@ webserver.get('/', (req, res) => {
             
             let createInputs = questions =>
                 questions.map(q => 
-                    \`<label class='vote-form__variants'><input type='radio' name='gaidai' value='\${q.code}'>\${q.text}</label>\`
+                    \`<div class='vote-form__variant'>
+                        <input type='button' name='\${q.code}' value='\${q.text}'>
+                        <span class='vote-form__results'></span>
+                    </div>\`
                 ).join('\\n');
             
             let createForm = inputs => 
@@ -82,7 +85,7 @@ webserver.get('/', (req, res) => {
                     width: 80%;
                     max-width: 500px;
                     margin: 0 auto;
-                    background-color: #000;
+                    background-color: #fff;
                 }
                 
                 .content {
@@ -91,9 +94,8 @@ webserver.get('/', (req, res) => {
                     height: 50%;
                     top: 30%;
                     border-radius: 4em;
-                    background-color: yellow;
+                    background-color: #fee;
                     z-index: 102;
-                    opacity: .8;
                 }
                 
                 .content__illustr {
@@ -106,7 +108,7 @@ webserver.get('/', (req, res) => {
                     background-image: url(pic.jpg);
                     background-size: auto 100%;
                     background-position: center center;
-                    background-color: grey;
+                    background-color: #faa;
                     background-repeat: no-repeat;
                     border-radius: 2em 2em 0 0;
                     z-index: 100;
@@ -117,10 +119,15 @@ webserver.get('/', (req, res) => {
                     font-size: 200%;
                     text-align: center;
                 }
-                
-                
+
+                .vote-form__variant {
+                    width: 100%;
+                    font-size: 200%;
+                    text-align: center;
+                }
+                                
                 .content__form {
-                    background-color: #e00;
+                    background-color: #fdd;
                     z-index: 2;
                 }
             </style>
@@ -130,11 +137,10 @@ webserver.get('/', (req, res) => {
                 <div class="content">
                     <div class="content__form vote-form">
                         <h2 class="vote-form__heading">Кто хочет сегодня поработать?!</h2>
-                        <form id="vote-form" action="#" onsubmit="sendAndUpdate() class="vote-form__body">
+                        <form id="vote-form" action="#" onsubmit="sendAndUpdate()" class="vote-form__body">
                             <div class="vote-form__variants">
 
                             </div>
-                            <input type="submit" class="vote-form__submit">
                         </form>
                     </div>
                 </div>
