@@ -10,10 +10,6 @@
                     font-family: Verdana, Geneva, Tahoma, sans-serif;
                 }
                 
-                * {
-                    font-size: inherit;
-                }
-                
                 html, body {
                     height: 100%;
                     margin: 0;
@@ -28,12 +24,12 @@
                     background-color: #fff;
                 }
                 
-                .vote-form__content {
+                .vote-page__content {
                     position: absolute;
                     width: 100%;
                     height: 50%;
                     top: 30%;
-                    border-radius: 4em;
+                    border-radius: 2em;
                     background-color: #fee;
                     z-index: 102;
                 }
@@ -42,30 +38,49 @@
                     position: absolute;
                     top:6%;
                     width: 60%;
-                    max-width: 300px;
+                    max-width: 190px;
                     height: 25%;
-                    left: 20%;
+                    left: 50%;
+                    transform: translateX(-50%);
                     background-image: url(pic.jpg);
                     background-size: auto 100%;
                     background-position: center center;
-                    background-color: #faa;
+                    background-color: transparent;
                     background-repeat: no-repeat;
                     border-radius: 2em 2em 0 0;
                     z-index: 100;
                 }
                 
-                .vote-form__heading {
+                .vote-table__heading {
+                    padding-left: 1em;
+                    padding-right: 1em;
                     margin: .5em 0;
                     font-size: 150%;
                     text-align: center;
                     color:#f35656
                 }
 
-                .vote-form__variant {
+                .vote-table__body {
                     width: 100%;
-                    text-align: center;
+                    font-size: 90%;
+                }
+
+                .vote-table__wrapper {
+                    padding-left: 2em;
+                    padding-right: 2em;
                 }
                                 
+                .vote-table__question input {
+                    white-space: normal;
+                    padding-top: .25em;
+                    padding-bottom: .25em;
+                    border-radius: 1ex;
+                }
+
+                .vote-table__result {
+                    text-align: right;
+                }
+
                 .content__form {
                     background-color: #fdd;
                     z-index: 2;
@@ -74,13 +89,11 @@
         </head>
         <body>
             <div class="container">
-                <div class="vote-form__content">
-                    <h2 class="vote-form__heading">Кто хочет сегодня поработать?!</h2>
-                    <form id="vote-form" action="#" onsubmit="sendAndUpdate()" class="vote-form__body">
-                        <div class="vote-form__variants">
+                <div class="vote-page__content">
+                    <h2 class="vote-table__heading">Кто хочет сегодня поработать?!</h2>
+                        <div class="vote-table__wrapper">
 
                         </div>
-                    </form>
                 </div>
                 <div class="content__illustr"></div>
             </div>
@@ -89,7 +102,7 @@
         
                 const buildVoteForm = () => {
                     
-                    let formWrapper = document.querySelector('.vote-form__variants');
+                    let tableWrapper = document.querySelector('.vote-table__wrapper');
                     let variantsURL = 'http://localhost:8089/variants';
                     let statURL = 'http://localhost:8089/stat';
                     
@@ -109,48 +122,64 @@
                         });
                     };
 
-                    const getStat = (url) => {
+                    const getStat = () => {
                         const params = {
                             method:'POST'
                         };
-                        return performRequest(url, params);
+                        return performRequest(statURL, params);
                     };
 
-                    const getVariants = (url) => performRequest(variantsURL);
+                    const getVariants = () => performRequest(variantsURL);
                     
-                    let createInputs = questions =>
+                    let createInputs = (stat, questions) =>
                         questions.map(q => 
                             `<tr>
-                                <td><input type='button' name='${q.code}' value='${q.text}'></td>
-                                <td><span class='vote-form__results'></span></td>
+                                <td class='vote-table__question'>
+                                    <input type='button' name='${q.code}' value='${q.text}'></td>
+                                <td class='vote-table__result'>${stat[q.code]}</td>
                             </tr>`
                         ).join('\n');
                     
-                    let createForm = inputs => 
-                        `<form id='vote-form' action='#' onsubmit='sendAndUpdate()' class='vote-form__body'>
-                            ${inputs}
-                            <input type='submit' class='vote-form__submit'>
-                        </form>`;
+                    let createQuestionTable = inputs => 
+                        `<table class='vote-table__body'>
+                            <tbody>
+                                ${inputs}
+                            <tbody>
+                        </table>`;
                     
                     //let getVariants = performRequest(variantsURL);
-                    //Promise.all([getVariants, getStats])
-                    
-                    
-                    getVariants(variantsURL)
-                        .then( questions => createInputs(questions) )
-                        .then( formMarkup => {
-                            formWrapper.innerHTML = formMarkup;
+                    Promise.all([getStat(), getVariants()])
+                        .then(values => {
+                            console.log(values);
+                            let stats = values[0];
+                            let variants = values[1];
+                            let inputs = createInputs(stats, variants);
+                            let questionTable = createQuestionTable(inputs);
+                            tableWrapper.innerHTML = questionTable;
                         })
                         .catch(function(e) {
                             console.log(e);
                         })
                     ;
+                    
+                    // getStat(statURL)
+                    //     .then( response => {
+                    //         console.log(JSON.stringify(response));
+                    //         console.log(response.code);
+                    //     })
+                    // ;
+                    
+                    // getVariants(variantsURL)
+                    //     .then( questions => createInputs(questions) )
+                    //     .then( inputs => createQuestionTable(inputs) )
+                    //     .then( voteTable => {
+                    //         tableWrapper.innerHTML = voteTable;
+                    //     })
+                    //     .catch(function(e) {
+                    //         console.log(e);
+                    //     })
+                    // ;
 
-                    getStat(statURL)
-                        .then( response => {
-                            console.log(JSON.stringify(response));
-                            console.log(response.code);
-                        })
 
 
 
