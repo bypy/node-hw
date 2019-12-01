@@ -5,6 +5,9 @@ const iconv = require('iconv-lite');
 const os = require('os');
 
 const webserver = express();
+
+webserver.use(express.urlencoded({extended:true}));
+
 const servPort = 7980;
 
 const variantsSrcFilePath = path.join(__dirname, 'вопросы для опроса.txt');
@@ -34,14 +37,13 @@ jsonFileBody = iconv.encode(JSON.stringify(questionList), 'utf8');
 fs.writeFileSync(variantsTargetFilePath, jsonFileBody);
 
 
-// формирую содержимое JSON файла со статистикой ответов
-let statH = questionList.map(q => {
-    let statRec = {};
-    console.log(q);
-    if (q.code) statRec[q.code] = 0;
-    return statRec;
+// инициализация содержимого JSON файла со статистикой ответов
+let statRec = {};
+questionList.forEach(q => {
+    let code = q.code;
+    if (code) statRec[code] = 0;
 });
-jsonFileBody = JSON.stringify(statH);
+jsonFileBody = JSON.stringify(statRec);
 fs.writeFileSync(statTargetFilePath, jsonFileBody);
 
 
@@ -55,9 +57,9 @@ webserver.get('/mainpage', (req, res) => {
         const buildVoteForm = () => {
             
             const tableWrapper = document.querySelector('.vote-table__wrapper');
-            const variantsURL = 'http://localhost:7980/variants';
-            const statURL = 'http://localhost:8089/stat';
-            const voteURL = 'http://localhost:8089/vote';
+            const variantsURL = '/variants';
+            const statURL = '/stat';
+            const voteURL = '/vote';
             const voteButtonActionName = 'vote';
             
             const performRequest = function(url, params) { 
@@ -92,7 +94,7 @@ webserver.get('/mainpage', (req, res) => {
                     headers: {
                         'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'
                     },
-                    body: encodeURIComponent(answerCode)
+                    body: '${keyName}=' + encodeURIComponent(answerCode)
                 };
                 return performRequest(voteURL, params);
             }
@@ -196,8 +198,9 @@ webserver.get('/mainpage', (req, res) => {
                     width: 100%;
                     top: 30%;
                     border-radius: 2em;
-                    background-color: #fee;
+                    background-color: #fae7c7;
                     z-index: 102;
+                    box-shadow: 0 0 15px 6px #fff;
                 }
                 
                 .content__illustr {
@@ -215,12 +218,13 @@ webserver.get('/mainpage', (req, res) => {
                     background-repeat: no-repeat;
                     border-radius: 2em 2em 0 0;
                     z-index: 100;
+                    box-shadow: 0 0 0px 5px #ff9494;
                 }
                 
                 .vote-table__heading {
                     padding-left: 1em;
                     padding-right: 1em;
-                    margin: .5em 0;
+                    margin: .75em 0 .75em;
                     font-size: 150%;
                     text-align: center;
                     color:#f35656
@@ -281,10 +285,38 @@ webserver.get('/mainpage', (req, res) => {
     }
 });
 
-webserver.get('/variants', (req, res) => { 
+webserver.get('/pic.jpg', (req, res) => {
+    const filePath=path.join(__dirname, 'pic.jpg');
+    const fileStream=fs.createReadStream(filePath);
+    res.setHeader('Content-Type', 'image/jpeg');
+    fileStream.pipe(res);
+});
+
+webserver.get('/variants', (req, res) => {
+    console.log('Получен запрос к /variants. Тело запроса:' + JSON.stringify(req.body));
     res.setHeader('Content-Type', 'application/json; charset=UTF-8');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.send(fs.readFileSync(variantsTargetFilePath, 'utf8'));
+});
+
+webserver.post('/stat', (req, res) => {
+    console.log('Получен запрос к /stat. Тело запроса:' + JSON.stringify(req.body));
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json; charset=UTF-8');
+    res.send(fs.readFileSync(statTargetFilePath, 'utf8'));
+});
+
+webserver.post('/vote', (req, res) => {
+    console.log('Получен запрос к /vote. Тело запроса:' + JSON.stringify(req.body));
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Content-Type', 'application/json; charset=UTF-8');
+    let statContent = fs.readFileSync(statTargetFilePath, 'utf8');
+    let statData = JSON.parse(statContent);
+    let keyToChange = req.body[keyName];
+    statData[keyToChange] +=1;
+    statContent = JSON.stringify(statData);
+    fs.writeFileSync(statTargetFilePath, statContent);
+    res.status(200).end();
 });
 
 webserver.listen(servPort);
