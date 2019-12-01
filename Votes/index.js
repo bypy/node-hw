@@ -1,59 +1,165 @@
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const iconv = require('iconv-lite');
+const os = require('os');
+
 const webserver = express();
 const servPort = 7980;
 
-webserver.get('/voting', (req, res) => {
+const variantsSrcFilePath = path.join(__dirname, 'вопросы для опроса.txt');
+const variantsTargetFilePath = path.join(__dirname, 'variants.json');
+const statTargetFilePath = path.join(__dirname, 'stat.json');
+
+// название ключевого поля в хэше вопросов
+const keyName = 'code';
+let jsonFileBody;
+
+// специалист по опросам набирал текст вопросов в Akelpad
+// и загрузил документ 'вопросы для опроса.txt' в кодировке windows-1251 
+let buf = fs.readFileSync(variantsSrcFilePath);
+let fileContent = iconv.decode(buf, 'win1251');
+let questions = fileContent.split(os.EOL);
+// формирую содержимое JSON файла с вариантами ответов
+let index = 0;
+let questionList = questions.map(qText => {
+    index++;
+    let questionH = {};
+    questionH[keyName] = 'q'+ index.toString();
+    questionH.text = qText;
+    return questionH;
+});
+jsonFileBody = iconv.encode(JSON.stringify(questionList), 'utf8');
+// записал в файл
+fs.writeFileSync(variantsTargetFilePath, jsonFileBody);
+
+
+// формирую содержимое JSON файла со статистикой ответов
+let statH = questionList.map(q => {
+    let statRec = {};
+    console.log(q);
+    if (q.code) statRec[q.code] = 0;
+    return statRec;
+});
+jsonFileBody = JSON.stringify(statH);
+fs.writeFileSync(statTargetFilePath, jsonFileBody);
+
+
+webserver.use(express.urlencoded({extended:true}));
+
+webserver.get('/mainpage', (req, res) => {
+    
     let scriptBody = 
         `'use strict';
         
         const buildVoteForm = () => {
-            let formWrapper = document.querySelector('.vote-form__variants');
-            let variantsURL = 'http://localhost:8089/variants';
             
-            let performRequest = function(url) { 
-                return new Promise(function(resolve, reject) {
-                    let xhr = new XMLHttpRequest();
-                    xhr.onload = function() {
-                        if (xhr.status === 200)
-                            resolve(xhr.responseText);
-                        else
-                            reject(xhr.statusText);
-                    };
-                    xhr.onerror = function(e) {
-                        reject(e);
-                    };
-                    xhr.open('GET', url);
-                    xhr.send();   
+            const tableWrapper = document.querySelector('.vote-table__wrapper');
+            const variantsURL = 'http://localhost:7980/variants';
+            const statURL = 'http://localhost:8089/stat';
+            const voteURL = 'http://localhost:8089/vote';
+            const voteButtonActionName = 'vote';
+            
+            const performRequest = function(url, params) { 
+                params = params || {};
+                const request = new Request(url, params);
+                return new Promise( (resolve, reject) => {
+                    fetch(request)
+                        .then(response => {
+                            if (response.status === 200) {
+                                resolve(response.text());
+                            } else {
+                                throw new Error('Something went wrong on api server!');
+                            }
+                        })
+            
                 });
             };
+
+
+            const getVariants = () => performRequest(variantsURL);
             
-            let createInputs = questions =>
-                questions.map(q => 
-                    \`<div class='vote-form__variant'>
-                        <input type='button' name='\${q.code}' value='\${q.text}'>
-                        <span class='vote-form__results'></span>
-                    </div>\`
-                ).join('\\n');
+            const getStat = () => {
+                const params = {
+                    method:'POST'
+                };
+                return performRequest(statURL, params);
+            };
+
+            const sendVote = (answerCode) => {
+                const params = {
+                    method:'POST',
+                    headers: {
+                        'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'
+                    },
+                    body: encodeURIComponent(answerCode)
+                };
+                return performRequest(voteURL, params);
+            }
+                    
+            const createInputs = (stat, questions) =>
+            questions.map(q => 
+                \`<tr>
+                    <td class='vote-table__question'>
+                        <input type='button' data-action='\${voteButtonActionName}'
+                            name='\${q.code}' value='\${q.text}'></td>
+                    <td class='vote-table__result'>\${stat[q.code]}</td>
+                </tr>\`
+            ).join('\\n');
+        
+            const createQuestionTable = inputs => 
+                \`<table class='vote-table__body'>
+                    <tbody>
+                        \${inputs}
+                    <tbody>
+                </table>\`;
+
+            const refreshStat = stat => {
+                let statRows = tableWrapper.querySelectorAll('tr');
+                statRows.forEach( row => {
+                    let voteBtn = row.querySelector('input[data-action="vote"]');
+                    if ( voteBtn ) {
+                        let currVoteCode = voteBtn.getAttribute('name');
+                        row.querySelector('td[class="vote-table__result"]').textContent = stat[currVoteCode];
+                    }
+                })
+            };
+
+            const sendAndUpdate = (EO) => {
+                if (EO.target.getAttribute('data-action') === voteButtonActionName) {
+                    sendVote(EO.target.name)
+                        .then( () => { 
+                            console.log("Голос засчитан"); 
+                            return getStat();
+                        })
+                        .then( stat => {
+                            let updStat = JSON.parse(stat);
+                            refreshStat(updStat);
+                        })
+                        .catch(function(e) {
+                            console.log(e);
+                        })
+                }
+            };
             
-            let createForm = inputs => 
-                \`<form id='vote-form' action='#' onsubmit='sendAndUpdate()' class='vote-form__body'>
-                    \${inputs}
-                    <input type='submit' class='vote-form__submit'>
-                </form>\`;
+            const listenVotes = () => {
+                tableWrapper.addEventListener('click', sendAndUpdate);
+            }
             
-            let getVariants = performRequest(variantsURL);
-            getVariants
-                .then(res =>
-                    JSON.parse(res)
-                )
-                .then( questions => createInputs(questions) )
-                .then( formMarkup => {
-                    formWrapper.innerHTML = formMarkup;
+            Promise.all([getStat(), getVariants()])
+                .then(values => {
+                    let stats = JSON.parse(values[0]);
+                    let variants = JSON.parse(values[1]);
+                    let inputs = createInputs(stats, variants);
+                    let questionTable = createQuestionTable(inputs);
+                    tableWrapper.innerHTML = questionTable;
+                    listenVotes();
                 })
                 .catch(function(e) {
                     console.log(e);
                 })
             ;
+
         }; // buildVoteForm
 
         window.addEventListener('DOMContentLoaded', buildVoteForm);`;
@@ -67,11 +173,8 @@ webserver.get('/voting', (req, res) => {
             
             <style>
                 html { 
-                    font-size: 62.5%;
-                }
-                
-                * {
-                    font-size: inherit;
+                    font-size: 100%;
+                    font-family: Verdana, Geneva, Tahoma, sans-serif;
                 }
                 
                 html, body {
@@ -88,12 +191,11 @@ webserver.get('/voting', (req, res) => {
                     background-color: #fff;
                 }
                 
-                .content {
+                .vote-page__content {
                     position: absolute;
                     width: 100%;
-                    height: 50%;
                     top: 30%;
-                    border-radius: 4em;
+                    border-radius: 2em;
                     background-color: #fee;
                     z-index: 102;
                 }
@@ -102,30 +204,52 @@ webserver.get('/voting', (req, res) => {
                     position: absolute;
                     top:6%;
                     width: 60%;
-                    max-width: 300px;
+                    max-width: 190px;
                     height: 25%;
-                    left: 20%;
+                    left: 50%;
+                    transform: translateX(-50%);
                     background-image: url(pic.jpg);
                     background-size: auto 100%;
                     background-position: center center;
-                    background-color: #faa;
+                    background-color: transparent;
                     background-repeat: no-repeat;
                     border-radius: 2em 2em 0 0;
                     z-index: 100;
                 }
                 
-                .vote-form__heading {
-                    margin: 0;
-                    font-size: 200%;
+                .vote-table__heading {
+                    padding-left: 1em;
+                    padding-right: 1em;
+                    margin: .5em 0;
+                    font-size: 150%;
                     text-align: center;
+                    color:#f35656
                 }
 
-                .vote-form__variant {
+                .vote-table__body {
                     width: 100%;
-                    font-size: 200%;
-                    text-align: center;
+                    font-size: 90%;
+                }
+
+                .vote-table__wrapper {
+                    padding-left: 2em;
+                    padding-right: 2em;
+                    margin-bottom: 2em;
                 }
                                 
+                .vote-table__question input {
+                    max-width: 80%;
+                    padding-top: .25em;
+                    padding-bottom: .25em;
+                    border-radius: 1ex;
+                    white-space: normal;
+                    text-align: inherit;
+                }
+
+                .vote-table__result {
+                    text-align: right;
+                }
+
                 .content__form {
                     background-color: #fdd;
                     z-index: 2;
@@ -134,15 +258,11 @@ webserver.get('/voting', (req, res) => {
         </head>
         <body>
             <div class="container">
-                <div class="content">
-                    <div class="content__form vote-form">
-                        <h2 class="vote-form__heading">Кто хочет сегодня поработать?!</h2>
-                        <form id="vote-form" action="#" onsubmit="sendAndUpdate()" class="vote-form__body">
-                            <div class="vote-form__variants">
+                <div class="vote-page__content">
+                    <h2 class="vote-table__heading">Кто хочет сегодня поработать?!</h2>
+                        <div class="vote-table__wrapper">
 
-                            </div>
-                        </form>
-                    </div>
+                        </div>
                 </div>
                 <div class="content__illustr"></div>
             </div>
@@ -151,12 +271,20 @@ webserver.get('/voting', (req, res) => {
             </script>
         </body>
         </html>`;
+    
     try {
+        res.setHeader('Content-Type', 'text/html; charset=UTF-8');
         res.send(mainPage);
     } catch(e) {
         console.log(e);
         res.status(404).end();
     }
+});
+
+webserver.get('/variants', (req, res) => { 
+    res.setHeader('Content-Type', 'application/json; charset=UTF-8');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.send(fs.readFileSync(variantsTargetFilePath, 'utf8'));
 });
 
 webserver.listen(servPort);

@@ -27,7 +27,6 @@
                 .vote-page__content {
                     position: absolute;
                     width: 100%;
-                    height: 50%;
                     top: 30%;
                     border-radius: 2em;
                     background-color: #fee;
@@ -68,13 +67,16 @@
                 .vote-table__wrapper {
                     padding-left: 2em;
                     padding-right: 2em;
+                    margin-bottom: 2em;
                 }
                                 
                 .vote-table__question input {
-                    white-space: normal;
+                    max-width: 80%;
                     padding-top: .25em;
                     padding-bottom: .25em;
                     border-radius: 1ex;
+                    white-space: normal;
+                    text-align: inherit;
                 }
 
                 .vote-table__result {
@@ -102,9 +104,11 @@
         
                 const buildVoteForm = () => {
                     
-                    let tableWrapper = document.querySelector('.vote-table__wrapper');
-                    let variantsURL = 'http://localhost:8089/variants';
-                    let statURL = 'http://localhost:8089/stat';
+                    const tableWrapper = document.querySelector('.vote-table__wrapper');
+                    const variantsURL = 'http://localhost:8089/variants';
+                    const statURL = 'http://localhost:8089/stat';
+                    const voteURL = 'http://localhost:8089/vote';
+                    const voteButtonActionName = 'vote';
                     
                     const performRequest = function(url, params) { 
                         params = params || {};
@@ -113,7 +117,7 @@
                             fetch(request)
                                 .then(response => {
                                     if (response.status === 200) {
-                                        resolve(response.json());
+                                        resolve(response.text());
                                     } else {
                                         throw new Error('Something went wrong on api server!');
                                     }
@@ -130,60 +134,80 @@
                     };
 
                     const getVariants = () => performRequest(variantsURL);
+
+                    const sendVote = (answerCode) => {
+                        const params = {
+                            method:'POST',
+                            headers: {
+                                'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'
+                            },
+                            body: encodeURIComponent(answerCode)
+                        };
+                        return performRequest(voteURL, params);
+                    }
                     
-                    let createInputs = (stat, questions) =>
+                    const createInputs = (stat, questions) =>
                         questions.map(q => 
                             `<tr>
                                 <td class='vote-table__question'>
-                                    <input type='button' name='${q.code}' value='${q.text}'></td>
+                                    <input type='button' data-action='${voteButtonActionName}' name='${q.code}' value='${q.text}'></td>
                                 <td class='vote-table__result'>${stat[q.code]}</td>
                             </tr>`
                         ).join('\n');
                     
-                    let createQuestionTable = inputs => 
+                    const createQuestionTable = inputs => 
                         `<table class='vote-table__body'>
                             <tbody>
                                 ${inputs}
                             <tbody>
                         </table>`;
+
+                    const refreshStat = stat => {
+                        let statRows = tableWrapper.querySelectorAll('tr');
+                        statRows.forEach( row => {
+                            let voteBtn = row.querySelector('input[data-action="vote"]');
+                            if ( voteBtn ) {
+                                let currVoteCode = voteBtn.getAttribute('name');
+                                row.querySelector('td[class="vote-table__result"]').textContent = stat[currVoteCode];
+                            }
+                        })
+                    };
+
+                    const sendAndUpdate = (EO) => {
+                        if (EO.target.getAttribute('data-action') === voteButtonActionName) {
+                            sendVote(EO.target.name)
+                                .then( () => { 
+                                    console.log("Голос засчитан"); 
+                                    return getStat();
+                                })
+                                .then( stat => {
+                                    let updStat = JSON.parse(stat);
+                                    refreshStat(updStat);
+                                })
+                                .catch(function(e) {
+                                    console.log(e);
+                                })
+                        }
+                    };
                     
-                    //let getVariants = performRequest(variantsURL);
+                    const listenVotes = () => {
+                        tableWrapper.addEventListener('click', sendAndUpdate);
+                    }
+                    
                     Promise.all([getStat(), getVariants()])
                         .then(values => {
                             console.log(values);
-                            let stats = values[0];
-                            let variants = values[1];
+                            let stats = JSON.parse(values[0]);
+                            let variants = JSON.parse(values[1]);
                             let inputs = createInputs(stats, variants);
                             let questionTable = createQuestionTable(inputs);
                             tableWrapper.innerHTML = questionTable;
+                            listenVotes();
                         })
                         .catch(function(e) {
                             console.log(e);
                         })
                     ;
-                    
-                    // getStat(statURL)
-                    //     .then( response => {
-                    //         console.log(JSON.stringify(response));
-                    //         console.log(response.code);
-                    //     })
-                    // ;
-                    
-                    // getVariants(variantsURL)
-                    //     .then( questions => createInputs(questions) )
-                    //     .then( inputs => createQuestionTable(inputs) )
-                    //     .then( voteTable => {
-                    //         tableWrapper.innerHTML = voteTable;
-                    //     })
-                    //     .catch(function(e) {
-                    //         console.log(e);
-                    //     })
-                    // ;
-
-
-
-
-
 
                 }; // buildVoteForm
 
