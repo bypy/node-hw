@@ -212,7 +212,7 @@ webserver.get('/mainpage', (req, res) => {
                     left: 50%;
                     transform: translateX(-50%);
                     background-image: url(pic.jpg);
-                    background-size: auto 100%;
+                    background-size: cover;
                     background-position: center center;
                     background-color: transparent;
                     background-repeat: no-repeat;
@@ -280,7 +280,6 @@ webserver.get('/mainpage', (req, res) => {
         res.setHeader('Content-Type', 'text/html; charset=UTF-8');
         res.send(mainPage);
     } catch(e) {
-        console.log(e);
         res.status(404).end();
     }
 });
@@ -293,21 +292,18 @@ webserver.get('/pic.jpg', (req, res) => {
 });
 
 webserver.get('/variants', (req, res) => {
-    console.log('Получен запрос к /variants. Тело запроса:' + JSON.stringify(req.body));
     res.setHeader('Content-Type', 'application/json; charset=UTF-8');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.send(fs.readFileSync(variantsTargetFilePath, 'utf8'));
 });
 
 webserver.post('/stat', (req, res) => {
-    console.log('Получен запрос к /stat. Тело запроса:' + JSON.stringify(req.body));
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json; charset=UTF-8');
     res.send(fs.readFileSync(statTargetFilePath, 'utf8'));
 });
 
 webserver.post('/vote', (req, res) => {
-    console.log('Получен запрос к /vote. Тело запроса:' + JSON.stringify(req.body));
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json; charset=UTF-8');
     let statContent = fs.readFileSync(statTargetFilePath, 'utf8');

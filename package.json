@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "server": "node Votes/index.js",
-    "servermon": "nodemon --watch Votes/index.js Votes/index.js",
-    "debug": "node --inspect Votes/index.js"
+    "servermon": "nodemon --watch Votes_level2/app/app.js Votes_level2/app/app.js",
+    "debug": "node --inspect Votes_level2/app/app.js"
   },
   "author": "",
   "license": "ISC",
