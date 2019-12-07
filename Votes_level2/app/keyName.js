@@ -1,1 +1,1 @@
-module.exports = 'code';
+module.exports = {key:'code', prefix:'q'};
