@@ -42,7 +42,7 @@
                             'Accept': clientAccept,
                         },
                     };
-                    const response = await fetch('/export?exp=true', fetchOptions);
+                    const response = await fetch('/stat?exp=true', fetchOptions);
                     const responseText = await response.text();
                     const statDisplayNode = document.querySelector('.download-stat__display');
                     statDisplayNode.innerText = responseText;

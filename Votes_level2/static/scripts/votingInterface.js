@@ -28,7 +28,7 @@
 
         const getStat = () => {
             const params = {
-                method: 'POST'
+                method: 'GET'
             };
             return performRequest(statURL, params);
         };

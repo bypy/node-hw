@@ -28,12 +28,6 @@ webserver.get('/variants', (req, res) => {
     res.send(fs.readFileSync(variantsTargetFilePath, 'utf8'));
 });
 
-webserver.post('/stat', (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Content-Type', 'application/json; charset=UTF-8');
-    res.send(fs.readFileSync(statTargetFilePath, 'utf8'));
-});
-
 webserver.post('/vote', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Content-Type', 'application/json; charset=UTF-8');
@@ -46,7 +40,7 @@ webserver.post('/vote', (req, res) => {
     res.status(200).end();
 });
 
-webserver.get('/export', async (req, res) => {
+webserver.get('/stat', async (req, res) => {
     if (Object.keys(req.query).length === 0) {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Content-Type', 'application/json; charset=UTF-8');
