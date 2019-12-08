@@ -27,6 +27,11 @@ html, body {
     box-shadow: 0 0 15px 6px #fff;
 }
 
+.content__form {
+    background-color: #fdd;
+    z-index: 2;
+}
+
 .content__illustr {
     position: absolute;
     top:6%;
@@ -59,13 +64,21 @@ html, body {
     font-size: 90%;
 }
 
+
 .vote-table__wrapper {
     padding-left: 2em;
     padding-right: 2em;
     margin-bottom: 2em;
 }
-                
-.vote-table__question input {
+
+.vote-table__export {
+    margin-top: 1em;
+    padding: 1ex;
+    border: 1px solid #f35656;
+    font-size: 60%;
+}
+.vote-table__question input,
+.vote-table__export input{
     max-width: 80%;
     padding-top: .25em;
     padding-bottom: .25em;
@@ -78,7 +91,15 @@ html, body {
     text-align: right;
 }
 
-.content__form {
-    background-color: #fdd;
-    z-index: 2;
+.download-stat__heading,
+.download-stat__wrapper {
+    display: inline-block;
+}
+
+.download-stat__heading {
+    margin: 0 1ex .5em 0;
+}
+
+.download-stat__display {
+    padding-top: 1em;
 }

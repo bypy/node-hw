@@ -4,6 +4,7 @@
 
     function createVotingInterface() {
         const tableWrapper = document.querySelector('.vote-table__wrapper');
+        const exportBtns = tableWrapper.querySelector('.vote-table__export').cloneNode(true);
         const variantsURL = '/variants';
         const statURL = '/stat';
         const voteURL = '/vote';
@@ -37,7 +38,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type':
-                        'application/x-www-form-urlencoded; charset=UTF-8'
+                        'application/x-www-form-urlencoded'
                 },
                 body: 'code=' + encodeURIComponent(answerCode)
             };
@@ -61,7 +62,7 @@
             `<table class='vote-table__body'>
                     <tbody>
                         ${inputs}
-                    <tbody>
+                    </tbody>
                 </table>`;
 
         const refreshStat = stat => {
@@ -107,10 +108,12 @@
                 let inputs = createInputs(stats, variants);
                 let questionTable = createQuestionTable(inputs);
                 tableWrapper.innerHTML = questionTable;
+                tableWrapper.appendChild(exportBtns);
                 listenVotes();
             })
             .catch(function(e) {
                 console.log(e);
             });
     } // buildVoteForm
+
 })();

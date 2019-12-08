@@ -12,21 +12,24 @@
     const variantsTargetPath = path.join(__dirname,dataFolderName,'variants.json');
     const statTargetPath = path.join(__dirname,dataFolderName,'stat.json');
 
-    // const keyName = 'code';
     let jsonFileBody;
+    let topic;
 
     // специалист по опросам набирал текст вопросов в Akelpad
     // и загрузил документ 'вопросы для опроса.txt' в кодировке windows-1251 
     let buf = fs.readFileSync(variantsSrcPath);
     let fileContent = iconv.decode(buf, 'win1251');
     let questions = fileContent.split(os.EOL);
+    if (questions[0].trim().indexOf('*') === 0 ) {
+        topic = questions.shift().trim().replace(/\*/g,''); // это заголовок опроса, сохраняем и убираем из списка вопросов
+    }
     // формирую содержимое JSON файла с вариантами ответов
     let index = 0;
     let questionList = questions.map(qText => {
         index++;
         let questionH = {};
         questionH[keyName.key] = keyName.prefix + index.toString();
-        questionH.text = qText;
+        questionH.text = qText.trim();
         return questionH;
     });
     jsonFileBody = iconv.encode(JSON.stringify(questionList), 'utf8');
@@ -46,7 +49,8 @@
 
     module.exports = {
         variants: variantsTargetPath,
-        stat: statTargetPath
+        stat: statTargetPath,
+        votingTopic: (topic||null)
     };
 
 }());

@@ -10,10 +10,43 @@
             <div class="container">
                 <div class="vote-page__content">
                     <h2 class="vote-table__heading">Кто хочет сегодня поработать?!</h2>
-                    <div class="vote-table__wrapper"></div>
+                    <div class="vote-table__wrapper">
+                        <div class="vote-table__export download-stat">
+                            <span class="download-stat__heading">Отобразить статистику в формате:</span>
+                            <div class="download-stat__wrapper">
+                                <input type="button" value="XML" name="xml" onclick="downloadStat()">
+                                <input type="button" value="HTML" name="html" onclick="downloadStat()">
+                                <input type="button" value="JSON" name="json" onclick="downloadStat()">
+                            </div>
+                            <div class="download-stat__display"></div>
+                        </div>
+                    </div>
                 </div>
                 <div class="content__illustr"></div>
             </div>
             <script src="scripts/votingInterface.js"></script>
+            <script>
+                async function downloadStat(EO) {
+                    EO = EO || window.event;
+                    let clientAccept;
+                    const format = EO.target.getAttribute('name');
+                    if (format === 'xml') {
+                        clientAccept = 'application/xml';
+                    } else if (format === 'json') {
+                        clientAccept = 'application/json';
+                    } else {
+                        clientAccept = 'text/html'
+                    }
+                    const fetchOptions={
+                        headers: {
+                            'Accept': clientAccept,
+                        },
+                    };
+                    const response = await fetch('/export?exp=true', fetchOptions);
+                    const responseText = await response.text();
+                    const statDisplayNode = document.querySelector('.download-stat__display');
+                    statDisplayNode.innerText = responseText;
+                }
+            </script>
         </body>
         </html>
