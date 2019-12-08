@@ -84,7 +84,6 @@
             ) {
                 sendVote(EO.target.name)
                     .then(() => {
-                        console.log('Голос засчитан');
                         return getStat();
                     })
                     .then(stat => {

@@ -3,7 +3,6 @@ const fs = require('fs');
 const fsp = require('fs').promises;
 const path = require('path');
 const sha256 = require('js-sha256').sha256;
-//const { logLineAsync, getTempFileName } = require('../../utils/utils');
 
 // для импорта путей к файлам-источникам:
 const dataSources = require('./prepareQuestion.js');
@@ -12,8 +11,6 @@ const keyName = require('./keyName.js');
 
 const webserver = express();
 const servPort = 7980;
-
-//const logFN = path.join(__dirname, '_server.log');
 
 webserver.use(express.urlencoded({ extended: true }));
 webserver.use('/voting', express.static(path.join(__dirname, '..', 'static')));
@@ -28,7 +25,6 @@ webserver.get('/variants', (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     const fileStream = fs.createReadStream(variantsTargetFilePath);
     fileStream.pipe(res);
-    //res.send(fs.readFileSync(variantsTargetFilePath, 'utf8'));
 });
 
 webserver.post('/vote', (req, res) => {
@@ -90,7 +86,6 @@ webserver.get('/export', async (req, res) => {
         if ( ifNoneMatch && (ifNoneMatch === hash) ) {
             res.status(304).end();
         } else {
-            console.log('New ETag='+hash);
             res.setHeader('Content-Type', 'application/json; charset=UTF-8');
             res.setHeader('ETag', hash);
             res.setHeader('Cache-Control', 'public, max-age=0');
