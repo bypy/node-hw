@@ -72,8 +72,8 @@ html, body {
 }
 
 .vote-table__export {
-    margin-top: 1em;
-    padding: 1ex;
+    margin-top: 1.5em;
+    padding: 1em 2ex .5em;
     border: 1px solid #f35656;
     font-size: 60%;
 }
@@ -101,5 +101,5 @@ html, body {
 }
 
 .download-stat__display {
-    padding-top: 1em;
+    padding-top: .5em;
 }
