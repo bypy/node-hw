@@ -5,9 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "server": "node Votes/index.js",
-    "servermon": "nodemon --watch Votes_level2/app/app.js Votes_level2/app/app.js",
-    "debug": "node --inspect Votes_level2/app/app.js"
+    "server": "node 4097_Validation_form_level_2/app.js",
+    "servermon": "nodemon --watch 4097_Validation_form_level_2/app.js 4097_Validation_form_level_2/app.js",
+    "debug": "node --inspect 4097_Validation_form_level_2/app.js"
   },
   "author": "",
   "license": "ISC",
