@@ -1,5 +1,3 @@
-'use strict';
-
 const express = require('express');
 const webserver = express();
 const servPort = 7980;
@@ -46,9 +44,9 @@ let createFormInputs = (errorData, queryData, stdFields) => {
 
         return `<p><input ${type?'type='+type:""} ${name?'name='+name:""}
                         style='${isError?errInputStyle:validStyle}' placeholder='${placeholder}'
-                            ${userVal?'value="'+userVal+'"':""} ${(isError&&af)?'autofocus':""}
+                            ${userVal?'value="'+userVal+'"':""} ${(isError&&af)?'autofocus':""} autocomplete="off"
                                 onblur="this.placeholder='${placeholder}'"
-                                    onfocus="this.placeholder=''">${isError?errorSpan:""}</p>`
+                                    onfocus="this.placeholder=''">${isError?errorSpan:""}</p>`;
     });
 
     return formInputs.join("\n");
@@ -59,7 +57,7 @@ const sendServerError = reponse => {
     reponse.send(`<h1>У нас авария, но мы её уже ликвидируем!</h1>
         <a href="/form">Вернуться к форме</a> 
     `);
-}
+};
 
 const getFormInnerHTML = (errFlag, inputs) => {
     const initNotif = 'Представьтесь и введите цвета радуги по порядку';
@@ -74,14 +72,14 @@ const getFormInnerHTML = (errFlag, inputs) => {
     else legendText = initNotif;
 
     return ( 
-    `<fieldset>
-        <legend style="color:${errFlag?errColor:normalColor}">
-            ${legendText}</legend>
-        ${inputs}
-        <p>
-            <input type="submit" value="Проверить">
-        </p>
-    </fieldset>`);
+        `<fieldset>
+            <legend style="color:${errFlag?errColor:normalColor}">
+                ${legendText}</legend>
+            ${inputs}
+            <p>
+                <input type="submit" value="Проверить">
+            </p>
+        </fieldset>`);
 };
 
 const path = '/form';
@@ -90,7 +88,7 @@ setDataModel(modelName, rainbowAnswers);
 
 // Две задачи:
 // - обработка запроса страницы
-// - обработка успешной валидации дданных
+// - обработка редиректа после успешной валидации данных
 webserver.get(path, (req, res) => {
     let errorsH = {}; // не валидируем 
     let wereErrors = false; // не валидируем
@@ -107,7 +105,7 @@ webserver.get(path, (req, res) => {
             <title>Радуга</title>
         </head>
         <body>
-            <form action="${path}" method="post" novalidate autocomplete="on">
+            <form action="${path}" method="post" novalidate autocomplete="off">
                 ${formContent}
             </form>
         </body>
@@ -130,9 +128,9 @@ webserver.post(path, (req, res) => {
                     let userAnswer = postParams[name].trim();
                     // ответ получен, пропускаем по цепочке валидации
                     if (!field.optn)
-                        results.push( validate('filled', userAnswer) )
+                        results.push( validate('filled', userAnswer) );
                     if (field.name === 'age')
-                        results.push( validate('number', userAnswer) )
+                        results.push( validate('number', userAnswer) );
                     if (/color/.test(name)) {
                         results.push( compare(modelName, name, userAnswer, true) );
                         // флаг true приведет в нижний регистр и заменит ё на е
