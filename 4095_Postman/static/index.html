@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Document</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <fieldset>
+            <legend>POSTMAN LITE</legend>
+            <div class="row">
+                <!-- REQUEST COLUMN -->
+                <div class="col-md-6 request">
+                    <h2>REQUEST</h2>
+                    <div id="url" class="url group row">
+                        <div class="col-2 name"><span>URL</span></div>
+                        <div class="col-10 controls">
+                            <select name="protocol">
+                                <option value="unsec">http://</option>
+                                <option value="sec" disabled>https://</option>
+                            </select>
+                            <input type="text" name="url">
+                        </div>
+                    </div>
+                    <div id="method" class="method group row">
+                        <div class="col-2 name"><span>METHOD</span></div>
+                        <div class="col-10 controls">
+                            <label>GET
+                                <input type="radio" id="get" name="method" value="get" checked>
+                            </label>
+                            <label>POST
+                                <input type="radio" id="post" name="method" value="post">
+                            </label>
+                        </div>
+                    </div>
+                    <div id="params" class="params group row">
+                        <div class="col-2 name"><span>PARAMS</span></div>
+                        <div class="col-10 controls">
+                            <span class="params-row"><input type="text" class="param-name" name="param-name">
+                                <input type="text" class="param-value" name="param-value"></span>
+                            <span class="addWrapper"><input type="button" id="for-params" class="add" value="+"></span>
+                        </div>
+                    </div>
+                    <div id="content" class="content group row">
+                        <div class="col-2 name"><span>CONTENT-TYPE</span></div>
+                        <div class="col-10 controls">
+                            <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Complete_list_of_MIME_types -->
+                            <select class="type" name="type">
+                                <option value="">--Choose</option>
+                            </select>
+                            <span class="slash">/</span>
+                            <select class="mime-type" name="mime-type">
+                                <option value="">--Choose</option>
+                            </select>
+                            <input type="checkbox" id="custom-check" name="custom">
+                            <label for="custom-check">Custom content-type</label>
+                            <input type="text" id="custom-input" name="url" disabled>
+                        </div>
+                    </div>
+                    <div id="req-body" class="body group row">
+                        <div class="col-2 name"><span>BODY</span></div>
+                        <div class="col-10 controls">
+                        <textarea name="req-body" rows="10" placeholder="Request body content"></textarea>
+                        </div>
+                    </div>
+                    <div id="req-headers" class="req-headers group row">
+                        <div class="col-2 name"><span>HEADERS</span></div>
+                        <div class="col-10 controls">
+                            <span class="headers-row">
+                                <input type="text" class="header-name" name="header-name">
+                                <input type="text" class="header-value" name="header-value"></span>
+                            <span class="addWrapper">
+                                <input type="button" id="for-headers" class="add" value="+"></span>
+                                <input type="checkbox" id="ua" name="ua-chrome">
+                                <label for="custom-check">User-Agent: Chrome browser</label>
+                        </div>
+                    </div>
+                    <div class="buttons-wrapper">
+                        <input id="submit" type="button" value="Send request">
+                        <input id="reset" type="button" value="Reset all fields">
+                    </div>
+                </div>
+                <!-- RESPONSE COLUMN -->
+                <div class="col-md-6 response">
+                    <h2>RESPONSE</h2>
+                    <div id="status" class="status group row">
+                        <div class="col-10 controls">
+                            <input type="text" name="status" disabled>
+                        </div>
+                        <div class="col-2 name"><span>STATUS CODE</span></div>
+                    </div>
+                    <div id="res-content" class="res-content group row">
+                        <div class="col-10 controls">
+                            <input type="text" name="res-content" disabled>
+                        </div>
+                        <div class="col-2 name"><span>CONTENT-TYPE</span></div>
+                    </div>
+                    <div class="res-headers-wrapper">
+                        <div id="res-headers" class="headers group row">
+                            <div class="col-10 controls">
+                                <textarea name="res-headers" rows="10" placeholder="Response headers" disabled></textarea>
+                            </div>
+                            <div class="col-2 name"><span>REPONSE HEADERS</span></div>
+                        </div>
+                    </div>
+                    <div id="res-body" class="body group row">
+                        <div class="col-10 controls">
+                                <textarea name="res-body" rows="10" placeholder="Response body content" disabled></textarea>
+                        </div>
+                        <div class="col-2 name"><span>BODY</span></div>
+                    </div>
+                </div> 
+            </div>
+        </fieldset>
+    </div>
+    <script src="main.js"></script>
+</body>
+
+</html>

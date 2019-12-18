@@ -1,0 +1,82 @@
+{
+  "text": [
+    "plain",
+    "css",
+    "javascript",
+    "xml",
+    "csv",
+    "html",
+    "calendar"
+  ],
+  "application": [
+    "json",
+    "xml",
+    "ld+json",
+    "vnd.apple.installer+xml",
+    "vnd.oasis.opendocument.presentation",
+    "vnd.oasis.opendocument.spreadsheet",
+    "vnd.oasis.opendocument.text",
+    "ogg",
+    "pdf",
+    "php",
+    "vnd.ms-powerpoint",
+    "vnd.openxmlformats-officedocument.presentationml.presentation",
+    "x-rar-compressed",
+    "rtf",
+    "x-sh",
+    "x-shockwave-flash",
+    "x-tar",
+    "vnd.visio",
+    "xhtml+xml",
+    "vnd.ms-excel",
+    "vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "vnd.mozilla.xul+xml",
+    "zip",
+    "x-7z-compressed",
+    "x-freearc",
+    "vnd.amazon.ebook",
+    "octet-stream",
+    "x-bzip",
+    "x-bzip2",
+    "x-csh",
+    "msword",
+    "vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "vnd.ms-fontobject",
+    "epub+zip",
+    "gzip",
+    "java-archive"
+  ],
+  "image": [
+    "gif",
+    "vnd.microsoft.icon",
+    "jpeg",
+    "png",
+    "svg+xml",
+    "tiff",
+    "webp"
+  ],
+  "audio": [
+    "midi",
+    "x-midi",
+    "mpeg",
+    "ogg",
+    "opus",
+    "wav",
+    "webm",
+    "3gpp",
+    "3gpp2"
+  ],
+  "video": [
+    "mpeg",
+    "ogg",
+    "mp2t",
+    "webm",
+    "3gpp",
+    "3gpp2"
+  ],
+  "font": [
+    "ttf",
+    "woff",
+    "woff2"
+  ]
+}
