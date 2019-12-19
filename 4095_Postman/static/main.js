@@ -5,6 +5,74 @@
 
     function init() {
 
+        function Request(parent) {
+            
+            this.parent = parent;
+
+            this.input = {
+                protocol: {
+                    sel: '#url select[name="protocol"]',
+                    func: null 
+                },
+                url: {
+                    sel: '#url input[name="url"]',
+                    func: null 
+                },
+                method: {
+                    sel: '#method input[name="method"]',
+                    func: null
+                },
+                params: {
+                    sel: '#params .params-row',
+                    func: null
+                }   
+            };
+
+            this.reqData = {};         
+            
+            this.getValue = function(selector) {
+                return document.querySelector(selector).value;
+            };
+            
+            this.getChecked = function(selector) {
+                let radios = document.querySelectorAll(selector);
+                for (let i=0; i<radios.length; i++) {
+                    if (radios[i].checked)
+                        return radios[i].value;
+                }
+            };
+
+            this.getParams = function(selector) {
+                let params = [];
+                let paramRows = document.querySelectorAll(selector);
+                for (let i=0; i<paramRows.length; i++) {
+                    params.push(paramRows[i]);
+                }
+                return params.map( p => {
+                    let paramName = p.children[0].value;
+                    let paramValue = p.children[1].value;
+                    return ({ [paramName]: paramValue });
+                });
+            }
+
+            // правила извлечения данных из формы
+            this.input.protocol.func =  this.getValue;
+            this.input.url.func =       this.getValue;
+            this.input.method.func =    this.getChecked;
+            this.input.params.func =    this.getParams;
+            
+            
+        }
+
+        let request = new Request(document.getElementsByTagName('legend')[0]);
+
+        for (let key in request.input) {
+            let param = request.input[key];
+            request.reqData[key] = param.func(param.sel);
+        }
+
+        console.log(request.reqData);
+        
         // задаю селекторы для доступа к полям форм
         var sel = {
             req: {
