@@ -90,22 +90,27 @@
             inputVariants.unshift('<option value="">--Choose</option>');
             return inputVariants.join('\n');
         }
-
-        // находим оставшиеся элементы формы, из которых будем получать данные
+        
+        // обработка кликов по кнопке добавления параметра/заголовка
         var paramsRow = document.querySelector(sel.req.paramsRow);
         var emptyParamsRow = paramsRow.cloneNode(true);
         var headersRow = document.querySelector(sel.req.headersRow);
-        var emptyHeadersRow = headersRow.cloneNode(true);
-            
-        var paramName = document.querySelector(sel.req.paramName);
-
+        var emptyHeadersRow = headersRow.cloneNode(true);      
         var addBtn = document.querySelectorAll(sel.req.addBtn);
         for (var i=0; i<addBtn.length; i++) {
             addBtn[i].onclick = addRow;
         }
 
+        // находим оставшиеся элементы формы, из которых будем получать данные
+
+
+        var paramName = document.querySelector(sel.req.paramName);
+
+
+        /* функции */
+
         function addRow(EO) {
-            EO = window.event;
+            EO = EO || window.event;
             var newInputRow;
             var target = EO.target;
             var wrapper = target.parentNode;
@@ -138,28 +143,47 @@
             mimeSubTypeInput.disabled = flag;
         }
 
+        function send() {
+            var requestData = collectRequestData(sel.req);
+            console.log('Was sent');
+        }
+    
+        function reset() {
+            console.log('Was resetted');
+        }
+    
+        function collectRequestData(refs) {
+            let reqH = {};
 
+            for (let k in refs) {
+                reqH[k] = null;
+            }
+            reqH.protocol = document.querySelector(refs.protocol).value;
+            reqH.url = document.querySelector(refs.url).value;
+            let methods = document.querySelectorAll(refs.method);
+            for (let i=0; i<methods.length; i++) {
+                if (methods[i].checked) reqH.method = methods[i];
+            }
+            let params = [];
+            let paramsRow = document.querySelectorAll(refs.paramsRow);
+            for (let i=0; i<paramsRow.length; i++) {
+                params.push(paramsRow[i]);
+            }
+            reqH.params = params.map( r => {
+                let paramName = r.children[0].value;
+                let paramValue = r.children[1].value;
+                return ({ [paramName]: paramValue });
+            });
+            console.log(reqH.params);
+            // reqH.contentType = 
+            // reqH.body = 
+            // reqH.headers = 
+    
+            return reqH;
+        }
     }
 
-    function collectFieldsData(reqH) {
-        // reqH.protocol = 
-        // reqH.url = 
-        // reqH.method = 
-        // reqH.params = 
-        // reqH.contentType = 
-        // reqH.body = 
-        // reqH.headers = 
+    
 
-        //return reqH;
-    }
-
-    function send() {
-        var requestData = collectFieldsData(dataFields.req);
-        console.log('Was sent');
-    }
-
-    function reset() {
-        console.log('Was resetted');
-    }
 
 }());
