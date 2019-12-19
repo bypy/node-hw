@@ -28,19 +28,18 @@
                     <div id="method" class="method group row">
                         <div class="col-2 name"><span>METHOD</span></div>
                         <div class="col-10 controls">
-                            <label>GET
-                                <input type="radio" id="get" name="method" value="get" checked>
-                            </label>
-                            <label>POST
-                                <input type="radio" id="post" name="method" value="post">
-                            </label>
+                            <input type="radio" id="get" name="method" value="get" checked>
+                            <label for="get">GET</label>
+                            <input type="radio" id="post" name="method" value="post">
+                            <label for="post">POST</label>
                         </div>
                     </div>
                     <div id="params" class="params group row">
                         <div class="col-2 name"><span>PARAMS</span></div>
                         <div class="col-10 controls">
-                            <span class="params-row"><input type="text" class="param-name" name="param-name">
-                                <input type="text" class="param-value" name="param-value"></span>
+                            <div class="params-row">
+                                <input type="text" class="param-name" name="param-name"><input type="text" class="param-value" name="param-value">
+                            </div>
                             <span class="addWrapper"><input type="button" id="for-params" class="add" value="+"></span>
                         </div>
                     </div>

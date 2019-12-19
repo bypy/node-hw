@@ -1,5 +1,9 @@
 @import url("bootstrap-grid.min.css");
 
+html {
+	font-size: 62.5%;
+}
+
 body {
 	background: #eee;
 	font-family: Verdana, Geneva, Tahoma, sans-serif;
@@ -65,7 +69,7 @@ textarea {
 	background: #d7d7d7;
 	display: flex;
 	align-items: center;
-	font-size: 0.75em;
+	font-size: 0.75rem;
 	text-align: center;
 }
 
@@ -78,7 +82,7 @@ textarea {
 	border-radius: 5px 0 0 5px;
 	background: #b7b7b7;
 	font-weight: bolder;
-	word-wrap: break-word;
+	word-break: normal;
 }
 
 .response .name span {
@@ -87,24 +91,34 @@ textarea {
 	border-radius: 0 5px 5px 0;
 }
 
+.method .controls {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+}
+
+.method label {
+	flex: 1;
+}
+
 .params-row,
 .headers-row {
 	display: flex;
+	width: 100%;
+	align-self: center;
 	justify-content: space-between;
-	margin-bottom: 2%;
-	width: 100%;				
+	margin-bottom: .5rem;			
 }
 
 .params-row input,
 .headers-row input {
-	width: 49%
+	width: 49%;
+	width: calc(50% - 0.25rem);
 }
 
 
 .addWrapper {
-	display: flex;
-	width: 100%;
-	justify-content: center;
+	align-self: center;
 }
 
 .add {
@@ -146,19 +160,25 @@ textarea {
 	max-width: 100%;
 }
 
-#req-headers .controls {
+.req-headers .controls {
 	flex-direction: row;
 	flex-wrap: wrap;
 	align-items: center;
-	justify-content: start;
+	align-content: center;
 }
 
-#req-headers #ua {
+.req-headers #ua {
+	flex: 0 0;
 	margin-right: 1ex;
 }
 
-#req-headers label {
-	width: 80%;
+.req-headers .addWrapper {
+	flex: 1 0 100%;
+	text-align: center;
+}
+
+.req-headers label {
+	flex: 1 1;
 	word-wrap: break-word;
 }
 
@@ -183,15 +203,16 @@ textarea {
 #submit,
 #reset {
 	width: 40%;
-	line-height: 2;
 	margin-right: 1ex;
 	margin-left: 1ex;
 	min-width: 8.5rem;
-	padding: .5em 0;
+	padding: 1rem 0;
 }
 
 @media (min-width: 768px) {
-	
+	html {
+		font-size: 80%;
+	}
 	.request {
 		margin-bottom: 0;
 	}
