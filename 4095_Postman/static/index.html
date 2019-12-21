@@ -19,8 +19,8 @@
                         <div class="col-2 name"><span>URL</span></div>
                         <div class="col-10 controls">
                             <select name="protocol">
-                                <option value="unsec">http://</option>
-                                <option value="sec" disabled>https://</option>
+                                <option value="0">http://</option>
+                                <option value="1" disabled>https://</option>
                             </select>
                             <input type="text" name="url">
                         </div>
@@ -37,8 +37,9 @@
                     <div id="params" class="params group row">
                         <div class="col-2 name"><span>PARAMS</span></div>
                         <div class="col-10 controls">
-                            <div class="params-row">
-                                <input type="text" class="param-name" name="param-name"><input type="text" class="param-value" name="param-value">
+                            <div class="params-row"
+                                ><input type="text" class="param-name" name="param-name" placeholder="name"
+                                ><input type="text" class="param-value" name="param-value" placeholder="value">
                             </div>
                             <span class="addWrapper"><input type="button" id="for-params" class="add" value="+"></span>
                         </div>
@@ -68,9 +69,9 @@
                     <div id="req-headers" class="req-headers group row">
                         <div class="col-2 name"><span>HEADERS</span></div>
                         <div class="col-10 controls">
-                            <span class="headers-row">
-                                <input type="text" class="header-name" name="header-name">
-                                <input type="text" class="header-value" name="header-value"></span>
+                            <span class="headers-row"
+                                ><input type="text" class="header-name" name="header-name" placeholder="name"
+                                ><input type="text" class="header-value" name="header-value" placeholder="value"></span>
                             <span class="addWrapper">
                                 <input type="button" id="for-headers" class="add" value="+"></span>
                                 <input type="checkbox" id="ua" name="ua-chrome">
@@ -115,6 +116,8 @@
             </div>
         </fieldset>
     </div>
+    <script src="postman_form_handler.js"></script>
+    <script src="prepare_form.js"></script>
     <script src="main.js"></script>
 </body>
 

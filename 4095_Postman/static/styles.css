@@ -1,7 +1,7 @@
 @import url("bootstrap-grid.min.css");
 
 html {
-	font-size: 62.5%;
+	font-size: 100%;
 }
 
 body {
@@ -20,8 +20,9 @@ h2 {
 	background: linear-gradient(-90deg, rgba(0,0,0,0) 40%, #d2ddf7 85%, rgba(0,0,0,0) 100%);
 }
 
-textarea {
-	font: inherit;
+textarea,
+label {
+	font-size: inherit;
 }
 
 .request h2 {
