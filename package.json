@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "server": "node 4097_Validation_form_level_2/app.js",
+    "server": "node 4095_Postman/app/app.js",
     "servermon": "nodemon --watch 4095_Postman/app/app.js 4095_Postman/app/app.js",
     "debug": "node --inspect 4095_Postman/app/app.js"
   },

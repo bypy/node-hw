@@ -8,16 +8,25 @@ const webserver = express();
 const servPort = 7980;
 
 webserver.use(express.urlencoded({ extended: true }));
-webserver.use('/postman/static', express.static(path.join(__dirname, '..', 'static')));
+webserver.use('/postman', express.static(path.join(__dirname, '..', 'static')));
+// webserver.get('/postman', (req, res) => {
+//     res.sendFile(path.resolve(__dirname,'../static/index.html'));  
+// });
 
-webserver.get('/postman', (req, res) => {
-    res.setHeader('Content-Type', 'text/html; encoding=UTF-8');
-    res.redirect(302, '/postman/static/index.html');
-});
 
 webserver.post('/postman', (req, res) => {
     const body = req.body;
-    res.send({status:'OK!'});
+    res.setHeader("Content-type","application/json");
+    const responseBody = {
+        resStatus: 200,
+        resContentType: "text/html",
+        resHeaders: [
+            "Connection: keep-alive",
+            "Content-Encoding: gzip"
+        ],
+        resBody: '<!DOCTYPE html>\\n<html lang="en">\\n\\n<head>\\n    <meta charset=\\"UTF-8\\">\\n    <link rel=\\"stylesheet\\" href=\\"css/bootstrap.min.css\\">\\n    <title>\\u0410\\u0440\\u0445\\u0438\\u0432 \\u043f\\u0440\\u043e\\u0435\\u043a\\u0442\\u043e\\u0432</title>\\n    <style>\\n        .illustration img {\\n            margin: 0 auto;\\n            max-height: 350px;\\n        }\\n        .data {\\n            margin-top: 2em;\\n            font-size: 200%;\\n        }\\n        .projects {\\n            text-align: center;\\n        }\\n        @media all and (orientation: landscape) {\\n            .illustration {\\n                width: 30%;\\n                margin-left: 4%;\\n            }\\n            .list {\\n                width: 70%;\\n                max-width: 600px;\\n                font-size: 50%;\\n            }\\n        }\\n    </style>\\n</head>\\n\\n<body>\\n    <div id=\\"page\\" class=\\"container-fluid\\">\\n        <div class=\\"data row\\">\\n            <div id=\\"illustration\\" class=\\"illustration col-xs-12\\">\\n                <img src=\\"img/archive_1.jpg\\" class=\\"img-responsive\\" alt=\\"illustration\\">\\n            </div>\\n            <div class=\\"list col-xs-12\\">\\n                <div id=\\"projects\\" class=\\"projects list-group\\">\\n                    <a href=\\"lureshmedia/index.html\\" class=\\"list-group-item\\">\\n                        <h2 class=\\"list-group-item-heading\\">\\u0420\\u0410 &laquo;\\u041b\\u0443\\u0447\\u0448\\u0438\\u0435 \\u0440\\u0435\\u0448\\u0435\\u043d\\u0438\\u044f&raquo;</h4>\\n                            <p class=\\"list-group-item-text\\">2010-2019</p>\\n                    </a>\\n                    <a href=\\"randomizer-loto/index.html\\" class=\\"list-group-item\\">\\n                        <h2 class=\\"list-group-item-heading\\">\\u0420\\u0430\\u043d\\u0434\\u043e\\u043c\\u0430\\u0439\\u0437\\u0435\\u0440 &laquo;\\u0421\\u0443\\u043f\\u0435\\u0440\\u043b\\u043e\\u0442\\u043e&raquo;</h4>\\n                            <p class=\\"list-group-item-text\\">2019</p>\\n                    </a>\\n                    <a href=\\"zoo/index.html\\" class=\\"list-group-item\\">\\n                        <h2 class=\\"list-group-item-heading\\">\\u041a\\u043e\\u043d\\u043a\\u0443\\u0440\\u0441 &laquo;\\u041c\\u043e\\u0439 \\u0414\\u0440\\u0443\\u0433&raquo;</h4>\\n                            <p class=\\"list-group-item-text\\">2019</p>\\n                    </a>\\n                </div>\\n            </div>\\n        </div>\\n    </div>\\n</body>\\n\\n</html>'
+    };
+    res.send(responseBody);
 });
 
 

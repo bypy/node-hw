@@ -76,19 +76,20 @@ label {
 
 .name span {
 	position: absolute;
-	left: -10px;
+	left: -15px;
 	right: 0;
 	z-index: 2;
 	padding: 15px 5px;
 	border-radius: 5px 0 0 5px;
 	background: #b7b7b7;
+	font-size: 83.3333%;
 	font-weight: bolder;
 	word-break: normal;
 }
 
 .response .name span {
 	left: 0;
-	right: -10px;
+	right: -15px;
 	border-radius: 0 5px 5px 0;
 }
 
@@ -211,9 +212,6 @@ label {
 }
 
 @media (min-width: 768px) {
-	html {
-		font-size: 80%;
-	}
 	.request {
 		margin-bottom: 0;
 	}

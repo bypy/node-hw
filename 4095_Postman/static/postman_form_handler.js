@@ -31,7 +31,11 @@ function PostmanFormHandler(formEl) {
             }
         },
         sendBtn: { [SEL_KEY]: '#submit' },
-        resetBtn: { [SEL_KEY]: '#reset' }
+        resetBtn: { [SEL_KEY]: '#reset' },
+        resStatus: { [SEL_KEY]: '#status input' },
+        resContentType: { [SEL_KEY]: '#res-content input' },
+        resHeaders: { [SEL_KEY]: '#res-headers textarea' },
+        resBody: { [SEL_KEY]: '#res-body textarea' }
     };
 
     const getProtocol = function(selector) {
@@ -41,8 +45,13 @@ function PostmanFormHandler(formEl) {
         return protocol;
     };
 
-    const getValue = function(selector) {
-        return formEl.querySelector(selector).value;
+    const valueHandler = function(selector, newValue) {
+        let target = formEl.querySelector(selector);
+        if (!newValue)
+            return target.value;
+        else {
+            target.value = newValue;
+        }
     };
     
     const getChecked = function(selector) {
@@ -77,15 +86,21 @@ function PostmanFormHandler(formEl) {
         return ct;
     };
 
-    // правила-функции для извлечения данных из формы методом 'collectData'
-    // нет правила - значение из поля извлекаеться не будет
+    // правила-функции для извлечения данных ЗАПРОСА из формы методом 'collectData'
+    // нет правила - значение из поля извлекаться не будет
     fieldSelectors.protocol[F_KEY] = getProtocol;
-    fieldSelectors.url[F_KEY] =       getValue;
+    fieldSelectors.url[F_KEY] =       valueHandler;
     fieldSelectors.method[F_KEY] =    getChecked;
     fieldSelectors.params[F_KEY] =    getRowData;
     fieldSelectors.contentType[F_KEY] =  getContentType;
-    fieldSelectors.body[F_KEY] =      getValue;
+    fieldSelectors.body[F_KEY] =      valueHandler;
     fieldSelectors.headers[F_KEY] =      getRowData;
+    // правила для записи данных ответа
+    fieldSelectors.resStatus[F_KEY] = valueHandler;
+    fieldSelectors.resContentType[F_KEY] = valueHandler;
+    fieldSelectors.resHeaders[F_KEY] = valueHandler;
+    fieldSelectors.resBody[F_KEY] = valueHandler;
+    
 
     /* МЕТОДЫ */
 
@@ -108,5 +123,9 @@ function PostmanFormHandler(formEl) {
             }
         }
         return dataH;
+    };
+
+    this.setValue = function(selector, value) {
+        valueHandler(selector, value);
     };
 }
