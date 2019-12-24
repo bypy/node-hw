@@ -3,9 +3,9 @@
     "plain",
     "css",
     "javascript",
-    "xml",
+    "xml; charset=UTF-8",
     "csv",
-    "html",
+    "html; charset=UTF-8",
     "calendar"
   ],
   "application": [

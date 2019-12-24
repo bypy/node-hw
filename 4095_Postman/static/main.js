@@ -5,7 +5,7 @@
 
     function init() {
 
-        var POSTMAN_URL = 'http://localhost:7980/postman';
+        var POSTMAN_URL = '/run';
 
         var postmanForm = document.getElementsByTagName('fieldset')[0];
         var postmanFormHandler = new PostmanFormHandler(postmanForm);

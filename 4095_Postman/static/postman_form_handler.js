@@ -69,7 +69,9 @@ function PostmanFormHandler(formEl) {
             let kvPair = dataElems[i];
             let k = kvPair.querySelector(selector.name).value;
             let v = kvPair.querySelector(selector.value).value;
-            kvPairsH[k] = v;
+            // не собирать данные из пустой пары ключ/значение
+            if (k||v)
+                kvPairsH[k] = v;
         }
         return kvPairsH;
     };
