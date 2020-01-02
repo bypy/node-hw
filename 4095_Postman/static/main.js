@@ -34,8 +34,18 @@
             try {
                 var response = await fetch(POSTMAN_URL, fetchParams);
                 var resBody = await response.json();
-            } catch(err) {
-                alert(err);
+                if ('error' in resBody) {
+                    //highlightErrFields(resBody.error);
+                    var err = new Error();
+                    var errMess = '';
+                    resBody.error.forEach( t => {
+                        errMess += '>> '+t.message+'\n';
+                    });
+                    err.message = errMess;
+                    throw err;
+                }
+            } catch(e) {
+                alert(e.message);
             }
             console.log(resBody);
             showResponse(resBody);

@@ -3,8 +3,6 @@ const path = require('path');
 const fetch = require("isomorphic-fetch");
 const validateInput = require('./assertion.js');
 
-
-
 const webserver = express();
 const servPort = 7980;
 
@@ -14,22 +12,29 @@ webserver.use('/postman', express.static(path.join(__dirname, '..', 'static')));
 
 webserver.post('/run', async (req, res) => {
 
+    const joinArrayOfHashes = function(arr) {
+        // собирает хэши из массива в один хэш
+        if (!Array.isArray(arr))
+            return;
+        const reducer = (acc, curr) => {
+            Object.keys(curr).forEach(k => {
+                acc[k] = curr[k];
+            });
+            return acc;
+        };
+        arr.reduce(reducer, {});
+    };
+
+    const errorKey = 'error';
+    const warnKey = 'warning';
+    
     try {
         const proxy_body = req.body;
-        const errors = validateInput(proxy_body);
+        const validationResult = validateInput(proxy_body);
         let responseBody = null;
 
-        const joinArrayOfHashes = function(arr) {
-            const reducer = (acc, curr) => {
-                Object.keys(curr).forEach(k => {
-                    acc[k] = curr[k];
-                })
-                return acc;
-            };
-            arr.reduce(reducer, {});
-        };
-
-        if (Object.keys(errors).length === 0) {
+        //if (Object.keys(errors).length === 0) {
+        if ( !(errorKey in Object.keys(validationResult)) ) {
             
             let proxyFetchParams = {
                 method: proxy_body.method,
@@ -44,6 +49,7 @@ webserver.post('/run', async (req, res) => {
             const resText=await response.text();
 
             responseBody = {
+                warnings: validationResult[warnKey],
                 resStatus: resHeaders.status,
                 resContentType: resHeaders['Content-Type'],
                 resHeaders: resHeaders,
@@ -51,17 +57,17 @@ webserver.post('/run', async (req, res) => {
             };
 
         } else {
-            
             responseBody = {
-                error: errors
+                warnings: validationResult[warnKey],
+                error: validationResult[errorKey]
             };
         }
 
         res.setHeader("Content-type","application/json"); 
         res.send(responseBody);
     } catch (e) {
-        res.status(401);
-        res.send(e);
+        console.log(e.message);
+        res.status(500).end();
     }
 
 });
