@@ -45,13 +45,31 @@ function PostmanFormHandler(formEl) {
         return protocol;
     };
 
+    const getURL = function(selector) {
+        let target = formEl.querySelector(selector);
+        return target.value.replace(/https?:\/\//, '');
+    };
+
+    // поддерживает считывание и запись
     const valueHandler = function(selector, newValue) {
         let target = formEl.querySelector(selector);
         if (!newValue)
+            // режим чтения из поля
             return target.value;
         else {
+            // режим записи в поле
             target.value = newValue;
         }
+    };
+
+    // для записи
+    const writeHashPairs = function(selector, newValue) {
+        let target = formEl.querySelector(selector);
+        let strNewValue = '';
+        for (var k in newValue) {
+            strNewValue += k.concat(':',newValue[k],'\n');
+        }
+        target.value = strNewValue;
     };
     
     const getChecked = function(selector) {
@@ -83,7 +101,8 @@ function PostmanFormHandler(formEl) {
         else {
             let type = formEl.querySelector(selector.type);
             let subType = formEl.querySelector(selector.subType);
-            ct = ct.concat(type.value,'/',subType.value);
+            if ( type&&subType )
+                ct = ct.concat(type.value,'/',subType.value);
         }
         return ct;
     };
@@ -91,7 +110,7 @@ function PostmanFormHandler(formEl) {
     // правила-функции для извлечения данных ЗАПРОСА из формы методом 'collectData'
     // нет правила - значение из поля извлекаться не будет
     fieldSelectors.protocol[F_KEY] = getProtocol;
-    fieldSelectors.url[F_KEY] =       valueHandler;
+    fieldSelectors.url[F_KEY] =       getURL;
     fieldSelectors.method[F_KEY] =    getChecked;
     fieldSelectors.params[F_KEY] =    getRowData;
     fieldSelectors.contentType[F_KEY] =  getContentType;
@@ -100,7 +119,7 @@ function PostmanFormHandler(formEl) {
     // правила для записи данных ответа
     fieldSelectors.resStatus[F_KEY] = valueHandler;
     fieldSelectors.resContentType[F_KEY] = valueHandler;
-    fieldSelectors.resHeaders[F_KEY] = valueHandler;
+    fieldSelectors.resHeaders[F_KEY] = writeHashPairs;
     fieldSelectors.resBody[F_KEY] = valueHandler;
     
 
@@ -127,7 +146,8 @@ function PostmanFormHandler(formEl) {
         return dataH;
     };
 
-    this.setValue = function(selector, value) {
-        valueHandler(selector, value);
+    this.setValue = function(selector, fieldName, value) {
+        let func = fieldSelectors[fieldName][F_KEY];
+        func(selector, value);
     };
 }

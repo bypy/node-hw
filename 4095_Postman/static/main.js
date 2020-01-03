@@ -8,6 +8,7 @@
         var POSTMAN_URL = '/run';
         var errorKey = 'error';
         var warnKey = 'warning';
+        var scrollToResultElem = document.querySelector('.response h2');
 
         var postmanForm = document.getElementsByTagName('fieldset')[0];
         var postmanFormHandler = new PostmanFormHandler(postmanForm);
@@ -16,6 +17,8 @@
         var getSelector = postmanFormHandler.getSelectorByName;
         // псевдоним метода записи значения в элемент по его селектору
         var setValue = postmanFormHandler.setValue;
+        // 
+        var getHandler = postmanFormHandler.getHandler;
         // настройка формы (асинхронная загрузка MIME-типов, установка обработчиков добавления полей)
         prepareForm(getSelector);
 
@@ -34,38 +37,39 @@
                 body: JSON.stringify(requestData)
             };
             try {
-                var errMess = null;
-                var warnMess = null;
+                var errMess = '';
+                var warnMess = '';
 
                 var response = await fetch(POSTMAN_URL, fetchParams);
                 var resBody = await response.json();
 
-                // формируем текст предупреждений, если таковые есть
+                // формируем текст предупреждений, если они получены
                 if (warnKey in resBody) {
-                    var warnMess = '';
                     resBody[warnKey].forEach( t => {
                         warnMess += 'Внимание! >> '+t.message+'\n';
                     });
                 }
 
-
+                // формируем текст ошибок, если они получены
                 if (errorKey in resBody) {
-                    var errMess = '';
                     resBody[errorKey].forEach( t => {
                         errMess += 'Ошибка >> '+t.message+'\n';
                     });
                     var err = new Error();
-                    err.message = errMess;
+                    err.message = errMess + warnMess;
                     throw err;
                 }
             } catch(e) {
                 // показываем ошибки
                 alert(e.message);
+                return; // требуются коррективы пользовательского ввода
             }
-            // получен ответ на проксированный запрос
-            console.log(resBody);
-            // отображаем ответ
+            // отображаем полученный ответ на проксированный запрос
             showResponse(resBody);
+            scrollToResultElem.scrollIntoView();
+            // и предупреждения, если есть
+            if (warnMess)
+                alert('Получен ответ! Нажмите кнопку "OK"\n' + warnMess);
             
         }
 
@@ -73,7 +77,7 @@
             for (var paramName in resBody) {
                 var sel = getSelector(paramName);
                 if (sel) 
-                    setValue(sel, resBody[paramName]);
+                    setValue(sel, paramName, resBody[paramName]);
             }
         }
     

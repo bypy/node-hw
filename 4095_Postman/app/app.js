@@ -48,16 +48,22 @@ webserver.post('/run', async (req, res) => {
                 body: proxy_body.body,
             };
 
-            const response=await fetch(proxy_body.url, proxyFetchParams);
+            const url = proxy_body.protocol + '://' + proxy_body.url;
+            const response=await fetch(url, proxyFetchParams);
             const resHeaders = response.headers;
             const resText=await response.text();
             
+            // TODO:
+            // отправка параметров в зависимости от типа запроса (query / urlsearchparams)
+            // переместить Content-Type в заголовки
+            // https://developer.mozilla.org/ru/docs/Web/API/Fetch_API/Using_Fetch
+
             // формируем ответ
             responseBody = {
                 [warnKey]: validationResult[warnKey], // покажем предупреждения
-                resStatus: resHeaders.status,
-                resContentType: resHeaders['Content-Type'],
-                resHeaders: resHeaders,
+                resStatus: response.status,
+                resContentType: resHeaders.get('Content-Type'),
+                resHeaders: resHeaders._headers,
                 resBody: resText
             };
         }
