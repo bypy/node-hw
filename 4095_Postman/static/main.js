@@ -6,6 +6,8 @@
     function init() {
 
         var POSTMAN_URL = '/run';
+        var errorKey = 'error';
+        var warnKey = 'warning';
 
         var postmanForm = document.getElementsByTagName('fieldset')[0];
         var postmanFormHandler = new PostmanFormHandler(postmanForm);
@@ -32,23 +34,39 @@
                 body: JSON.stringify(requestData)
             };
             try {
+                var errMess = null;
+                var warnMess = null;
+
                 var response = await fetch(POSTMAN_URL, fetchParams);
                 var resBody = await response.json();
-                if ('error' in resBody) {
-                    //highlightErrFields(resBody.error);
-                    var err = new Error();
-                    var errMess = '';
-                    resBody.error.forEach( t => {
-                        errMess += '>> '+t.message+'\n';
+
+                // формируем текст предупреждений, если таковые есть
+                if (warnKey in resBody) {
+                    var warnMess = '';
+                    resBody[warnKey].forEach( t => {
+                        warnMess += 'Внимание! >> '+t.message+'\n';
                     });
+                }
+
+
+                if (errorKey in resBody) {
+                    var errMess = '';
+                    resBody[errorKey].forEach( t => {
+                        errMess += 'Ошибка >> '+t.message+'\n';
+                    });
+                    var err = new Error();
                     err.message = errMess;
                     throw err;
                 }
             } catch(e) {
+                // показываем ошибки
                 alert(e.message);
             }
+            // получен ответ на проксированный запрос
             console.log(resBody);
+            // отображаем ответ
             showResponse(resBody);
+            
         }
 
         function showResponse(resBody) {

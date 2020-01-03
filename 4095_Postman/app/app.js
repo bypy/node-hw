@@ -9,6 +9,8 @@ const servPort = 7980;
 webserver.use(express.json());
 webserver.use('/postman', express.static(path.join(__dirname, '..', 'static')));
 
+const errorKey = 'error';
+const warnKey = 'warning';
 
 webserver.post('/run', async (req, res) => {
 
@@ -24,18 +26,20 @@ webserver.post('/run', async (req, res) => {
         };
         arr.reduce(reducer, {});
     };
-
-    const errorKey = 'error';
-    const warnKey = 'warning';
     
     try {
         const proxy_body = req.body;
         const validationResult = validateInput(proxy_body);
         let responseBody = null;
 
-        //if (Object.keys(errors).length === 0) {
-        if ( !(errorKey in Object.keys(validationResult)) ) {
-            
+        if (errorKey in validationResult && validationResult[errorKey].length > 0) {
+            // найдены ошибки
+            responseBody = {
+                [errorKey]: validationResult[errorKey],
+                [warnKey]: validationResult[warnKey]
+            };
+        } else {
+            // ошибок нет, проксируем запрос
             let proxyFetchParams = {
                 method: proxy_body.method,
                 params: joinArrayOfHashes(proxy_body.params),
@@ -47,24 +51,20 @@ webserver.post('/run', async (req, res) => {
             const response=await fetch(proxy_body.url, proxyFetchParams);
             const resHeaders = response.headers;
             const resText=await response.text();
-
+            
+            // формируем ответ
             responseBody = {
-                warnings: validationResult[warnKey],
+                [warnKey]: validationResult[warnKey], // покажем предупреждения
                 resStatus: resHeaders.status,
                 resContentType: resHeaders['Content-Type'],
                 resHeaders: resHeaders,
                 resBody: resText
             };
-
-        } else {
-            responseBody = {
-                warnings: validationResult[warnKey],
-                error: validationResult[errorKey]
-            };
         }
 
         res.setHeader("Content-type","application/json"); 
         res.send(responseBody);
+    
     } catch (e) {
         console.log(e.message);
         res.status(500).end();
