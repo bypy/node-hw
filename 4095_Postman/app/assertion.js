@@ -51,7 +51,7 @@ const applyAssert = function(asrt) {
     let result = null;
     try {
         assert(asrt.cond, asrt.mess);
-        console.log(`Параметр ${asrt.param} валидный`);
+        //console.log(`Параметр ${asrt.param} валидный`);
     } catch(e) {
         if (e.code === 'ERR_ASSERTION') {
             result = {
@@ -60,7 +60,7 @@ const applyAssert = function(asrt) {
                 type: asrt.type
             };
         }
-        console.log(e.message);
+        //console.log(e.message);
     }
     return result;
 };

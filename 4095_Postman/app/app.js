@@ -111,7 +111,7 @@ webserver.post('/run', async (req, res) => {
         res.send(responseBody);
     
     } catch (e) {
-        console.log(e);
+        //console.log(e);
         res.status(500).end();
     }
 
