@@ -6,11 +6,11 @@ const validateInput = require('./assertion.js');
 const webserver = express();
 const servPort = 7980;
 
-webserver.use(express.json());
-webserver.use('/postman', express.static(path.join(__dirname, '..', 'static')));
-
 const errorKey = 'error';
 const warnKey = 'warning';
+
+webserver.use(express.json());
+webserver.use('/postman', express.static(path.join(__dirname, '..', 'static')));
 
 webserver.post('/run', async (req, res) => {
 
@@ -40,23 +40,75 @@ webserver.post('/run', async (req, res) => {
             };
         } else {
             // ошибок нет, проксируем запрос
-            let proxyFetchParams = {
-                method: proxy_body.method,
-                params: joinArrayOfHashes(proxy_body.params),
-                contentType: proxy_body.contentType,
-                headers: joinArrayOfHashes(proxy_body.headers),
-                body: proxy_body.body,
-            };
-
-            const url = proxy_body.protocol + '://' + proxy_body.url;
-            const response=await fetch(url, proxyFetchParams);
-            const resHeaders = response.headers;
-            const resText=await response.text();
             
             // TODO:
             // отправка параметров в зависимости от типа запроса (query / urlsearchparams)
             // переместить Content-Type в заголовки
             // https://developer.mozilla.org/ru/docs/Web/API/Fetch_API/Using_Fetch
+
+            const method = proxy_body.method.toLowerCase();
+            const params = joinArrayOfHashes(proxy_body.params);
+            const contentType = proxy_body.contentType;
+            let headers = joinArrayOfHashes(proxy_body.headers);
+            let url = proxy_body.protocol + '://' + proxy_body.url;
+            let urlParams = '';
+            let body = proxy_body.body;
+
+            let proxyFetchParams = {};
+
+            if (Object.keys(params).length > 0) {
+                urlParams = new URLSearchParams(params);
+            }
+
+            if (method === 'get') {
+                url = (urlParams) ? url+'?'+urlParams : url;
+                proxyFetchParams.method = method;
+            } else if (method === 'post') {
+                if (contentType)
+                    headers['Content-Type'] = contentType;
+                // TODO 'application/x-www-form-urlencoded'
+                body = (urlParams) ? JSON.stringify(urlParams) : body;
+                switch (contentType) {
+                    case 'application/json':
+                        // условимся, что параметры имеют приоритет выше, чем body
+                        if (!urlParams)
+                            body = JSON.stringify(body);
+                        break;
+                    case 'multipart/form-data':
+                        // TODO multiPartFormat()
+                        break;
+                }
+
+            }
+
+            switch (method) {
+                case 'get':
+                    // метод запроса определит способ передачи параметров
+                    url = (urlParams) ? url+'?'+urlParams : url;
+                    proxyFetchParams.method = method;
+                    break;
+                case 'post':
+                    
+                    if (contentType !== 'multipart/form-data')
+                        body = (urlParams) ? JSON.stringify(urlParams) : body;
+                    else {
+
+                    }
+                    
+                    break;
+            }
+            
+            
+
+            // let proxyFetchParams = {
+            //     method: proxy_body.method,
+            //     headers: headers,
+            //     body: body
+            // };
+
+            const response=await fetch(url, proxyFetchParams);
+            const resHeaders = response.headers;
+            const resText=await response.text();
 
             // формируем ответ
             responseBody = {

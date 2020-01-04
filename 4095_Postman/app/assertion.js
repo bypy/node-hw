@@ -21,6 +21,22 @@ const checkContent = function(reqBody, reqContentType) {
     }
 };
 
+const incorrectContentType = function(reqParams, reqContentType) { // для POST-запросов
+    if ( Object.keys(reqParams).length !==0 &&
+        !(reqContentType === 'application/x-www-form-urlencoded'||reqContentType === 'multipart/form-data') )
+        return false;
+    else
+        return true;
+};
+
+const checkParamsAndContent = function(reqParams, reqContentType) {
+    if ((reqContentType==='application/x-www-form-urlencoded'||reqContentType==='multipart/form-data') &&
+        (Object.keys(reqParams).length === 0))
+        return false;
+    else
+        return true;
+};
+
 const createUrlRegex = function() {
     var reS = "" ;
     reS += "^" ; // начало строки
@@ -63,7 +79,6 @@ const applyAssert = function(asrt) {
 };
 
 
-
 const validateInput = function(inp) {
 
     // заполним и вернем хэш ошибок
@@ -92,10 +107,22 @@ const validateInput = function(inp) {
             param: 'params',
             type: errorKey
         },
+        params_3: { // указан тип контента, предолагающий наличие параметров, но параметров нет
+            cond: checkParamsAndContent(inp.params, inp.contentType),
+            mess: `Вы не указали параметры, предполагаемые указанным Content-Type=${inp.contentType}`,
+            param: 'params',
+            type: errorKey
+        },
         body: { // нет ни праметров, ни тела POST-запроса
             cond: !(Object.keys(inp.params).length===0 && inp.body.length===0),
             mess: 'Укажите ИЛИ ПАРАМЕТРЫ ИЛИ ТЕЛО запроса',
             param: 'params',
+            type: errorKey
+        },
+        contentType_params: { // для POST-запроса с параметрами указан не корректный Content-Type
+            cond: incorrectContentType(inp.params, inp.contentType),
+            mess: 'Укажите корректный Content-Type. Например, "application/x-www-form-urlencoded"',
+            param: 'contentType',
             type: errorKey
         },
         contentType: { // не заполнен Content-Type POST-запроса
@@ -106,7 +133,7 @@ const validateInput = function(inp) {
         },
         contentType_body: { // содержимое тела запроса не соответствует указанному Content-Type
             cond: checkContent(inp.body, inp.contentType),
-            mess: 'Content-Type обязателен для заполнения',
+            mess: 'содержимое тела запроса не соответствует указанному Content-Type',
             param: 'contentType',
             type: warnKey // не препятствовать отправке запроса, но уведомить
         },
@@ -129,8 +156,8 @@ const validateInput = function(inp) {
 
     const postCheckList = [
         assertList.url, assertList.contentType, assertList.params_1,
-        assertList.params_2, assertList.body, assertList.headers,
-        assertList.contentType_body
+        assertList.params_2, assertList.params_3, assertList.body,
+        assertList.headers, assertList.contentType_body
     ];
     const getCheckList = [
         assertList.url, assertList.body_get,
@@ -151,13 +178,6 @@ const validateInput = function(inp) {
                     message: error.message
                 });
         });
-        // checkResult.push(applyAssert(assertList.url));
-        // checkResult.push(applyAssert(assertList.contentType));
-        // checkResult.push(applyAssert(assertList.params_1));
-        // checkResult.push(applyAssert(assertList.params_2));
-        // checkResult.push(applyAssert(assertList.body));
-        // checkResult.push(applyAssert(assertList.headers));
-        // checkResult.push(applyAssert(assertList.contentType_body));
     } else if (method.toLowerCase() === 'get') {
         getCheckList.forEach(check => {
             error = applyAssert(check);
@@ -167,10 +187,6 @@ const validateInput = function(inp) {
                     message: error.message
                 });
         });
-        // checkResult.push(applyAssert(assertList.url));
-        // checkResult.push(applyAssert(assertList.body_get));
-        // checkResult.push(applyAssert(assertList.headers));
-        // checkResult.push(applyAssert(assertList.params_2));
     }
 
     return checkResults;
