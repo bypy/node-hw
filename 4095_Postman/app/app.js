@@ -14,17 +14,18 @@ webserver.use('/postman', express.static(path.join(__dirname, '..', 'static')));
 
 webserver.post('/run', async (req, res) => {
 
-    const joinArrayOfHashes = function(arr) {
-        // собирает хэши из массива в один хэш
-        if (!Array.isArray(arr))
-            return;
-        const reducer = (acc, curr) => {
-            Object.keys(curr).forEach(k => {
-                acc[k] = curr[k];
-            });
-            return acc;
-        };
-        arr.reduce(reducer, {});
+    const multiPartFormat = function(paramsH) {
+        // https://learn.javascript.ru/xhr-forms
+        const boundary = String(Math.random()).slice(2);
+        const boundaryMiddle = '--' + boundary + '\r\n';
+        const boundaryLast = '--' + boundary + '--\r\n';
+        let body = ['\r\n'];
+        for (let key in paramsH) {
+            // добавление поля
+            body.push('Content-Disposition: form-data; name="'
+                + key + '"\r\n\r\n' + paramsH[key] + '\r\n');
+        }
+        return body.join(boundaryMiddle) + boundaryLast;
     };
     
     try {
@@ -40,71 +41,57 @@ webserver.post('/run', async (req, res) => {
             };
         } else {
             // ошибок нет, проксируем запрос
-            
-            // TODO:
-            // отправка параметров в зависимости от типа запроса (query / urlsearchparams)
-            // переместить Content-Type в заголовки
-            // https://developer.mozilla.org/ru/docs/Web/API/Fetch_API/Using_Fetch
 
             const method = proxy_body.method.toLowerCase();
-            const params = joinArrayOfHashes(proxy_body.params);
-            const contentType = proxy_body.contentType;
-            let headers = joinArrayOfHashes(proxy_body.headers);
+            const params = proxy_body.params;
+            let contentType = proxy_body.contentType;
+            let headers = proxy_body.headers;
             let url = proxy_body.protocol + '://' + proxy_body.url;
             let urlParams = '';
             let body = proxy_body.body;
 
-            let proxyFetchParams = {};
+            let proxyFetchParams = { // атрибуты проксированного запроса
+                method: method,
+                headers: headers
+            };
+            const paramsNotEmpty = Object.keys(params).length > 0;
 
-            if (Object.keys(params).length > 0) {
+            if (paramsNotEmpty) {
                 urlParams = new URLSearchParams(params);
             }
 
             if (method === 'get') {
-                url = (urlParams) ? url+'?'+urlParams : url;
-                proxyFetchParams.method = method;
-            } else if (method === 'post') {
-                if (contentType)
-                    headers['Content-Type'] = contentType;
-                // TODO 'application/x-www-form-urlencoded'
-                body = (urlParams) ? JSON.stringify(urlParams) : body;
-                switch (contentType) {
-                    case 'application/json':
-                        // условимся, что параметры имеют приоритет выше, чем body
-                        if (!urlParams)
-                            body = JSON.stringify(body);
-                        break;
-                    case 'multipart/form-data':
-                        // TODO multiPartFormat()
-                        break;
+                if (paramsNotEmpty) {
+                    // если указаны параметры для GET-запроса
+                    urlParams = new URLSearchParams(params);
+                    url = url+'?'+urlParams;
                 }
-
-            }
-
-            switch (method) {
-                case 'get':
-                    // метод запроса определит способ передачи параметров
-                    url = (urlParams) ? url+'?'+urlParams : url;
-                    proxyFetchParams.method = method;
-                    break;
-                case 'post':
-                    
-                    if (contentType !== 'multipart/form-data')
-                        body = (urlParams) ? JSON.stringify(urlParams) : body;
-                    else {
-
+            } else if (method === 'post') {
+                if (paramsNotEmpty) {
+                    // если указаны параметры для POST-запроса
+                    switch (contentType) {
+                    case 'multipart/form-data':
+                        // отправка данных в формате multipart/form-data
+                        body = multiPartFormat(params);
+                        contentType += ";".concat(` boundary=${body.match(/(--\d+)/g)[0]}`);
+                        break;
+                    case 'application/x-www-form-urlencoded':
+                        // отправка данных в формате x-www-form-urlencoded
+                        body = urlParams;
+                        break;
+                    default:
+                        // иначе преобразуем хэш параметров в JSON
+                        body = JSON.stringify(params);
                     }
-                    
-                    break;
+                } else {
+                    // для запроса без параметров с типом данных application/json
+                    if (contentType === 'application/json')
+                        body = JSON.stringify(body);
+                }
+                // оставшиеся атрибуты проксированного запроса
+                proxyFetchParams.headers['Content-Type'] = contentType;
+                proxyFetchParams.body = body;
             }
-            
-            
-
-            // let proxyFetchParams = {
-            //     method: proxy_body.method,
-            //     headers: headers,
-            //     body: body
-            // };
 
             const response=await fetch(url, proxyFetchParams);
             const resHeaders = response.headers;
@@ -124,10 +111,29 @@ webserver.post('/run', async (req, res) => {
         res.send(responseBody);
     
     } catch (e) {
-        console.log(e.message);
+        console.log(e);
         res.status(500).end();
     }
 
 });
+
+// Тестовый скрипт
+
+// webserver.get('/test', (req, res) => {
+//     console.log(JSON.stringify(req.query));
+//     res.send({resBody: "GET. No body"});
+// });
+
+// const bodyParser = require('body-parser');
+// const multer = require('multer');
+// const upload = multer({ dest: path.join(__dirname,"uploads") });
+// webserver.use(express.urlencoded({extended:true}));
+// webserver.use(bodyParser.text());
+
+// webserver.post('/test', upload.none(), (req, res) => {
+//     console.log(JSON.stringify(req.query));
+//     console.log(JSON.stringify(req.body));
+//     res.send({resBody: JSON.stringify(req.body)});
+// });
 
 webserver.listen(servPort);

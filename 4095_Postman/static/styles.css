@@ -185,7 +185,8 @@ label {
 }
 
 .response input {
-	width: auto;
+	width: 100%;
+	max-width: 30ex;
 	height: 30%;
 	align-self: center;
 	min-height: 2rem;

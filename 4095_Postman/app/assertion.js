@@ -4,7 +4,7 @@ const errorKey = 'error';
 const warnKey = 'warning';
 
 // примитивная проверка содержимого тела запроса на соответствие типу контента
-const checkContent = function(reqBody, reqContentType) {
+const checkBody = function(reqBody, reqContentType) {
     reqContentType = ''.concat(reqContentType.split(';')[0]).trim();
     switch (reqContentType) {
     case 'text/html':
@@ -18,6 +18,8 @@ const checkContent = function(reqBody, reqContentType) {
         } catch (e) {
             return false;
         }
+    default:
+        return true;
     }
 };
 
@@ -37,24 +39,9 @@ const checkParamsAndContent = function(reqParams, reqContentType) {
         return true;
 };
 
-const createUrlRegex = function() {
-    var reS = "" ;
-    reS += "^" ; // начало строки
-    // reS += "https?" ; // обязательный протокол (с опциональным символом 's' в конце)
-    // reS += "\\:\\/\\/" ; // протокол последовательность символов ://
-    reS += "(w{3}\\.){0,1}" ; // 0 или 1 раз повторяющаяся последовательность из 3 символов 'w', заканчивающаяся точкой
-
-    reS += "(?:"; // опциональная группа без захвата
-    reS += "[a-zа-я0-9]{1,63}\\."; // доменное имя третьего уровня длиной от 1 до 63 символов, заканчивающееся точкой
-    reS += ")?"; //
-
-    reS += "[a-zа-я0-9]"; // первый символ имени домена второго уровня - последовательность символов букв, цифр, исключен знак тире
-    reS += "[a-zа-я0-9\\-]{0,61}"; // последовательность символов букв, цифр и тире длиной от 0 до 61
-    reS += "[a-zа-я0-9]"; // последний (второй из двух) символ имени домена второго уровня - последовательность символов букв, цифр, исключен знак тире
-    reS += "\\."; // точка, отделяющая домен второго уровня от домена верхнего уровня
-    reS += "[a-zа-я]{2,18}"; // домен верхнего уровня длиной минимум 2 символа, максимум 18 символов (длиннее не нашел)
-    //reS += ".+$"; // конец строки
-    return new RegExp(reS,"i"); // ! нечувствительность к регистру в флаге 'i'
+const testURLRegex = function() {
+    // оставил для тестов валидным localhost:XXXX/любые-непробельные-символы
+    return /^(w{3}\.){0,1}(?:[a-zа-я0-9]{1,63}\.)?[a-zа-я0-9][a-zа-я0-9-]{0,61}[a-zа-я0-9]\.[a-zа-я]{2,18}|localhost:\d{4}\/\S+$/i;
 };
 
 
@@ -90,14 +77,14 @@ const validateInput = function(inp) {
     // все возможные проверки
     const assertList = { // cond: проверяемое условие; mess: сообщение об ошибке; param: ключ параметра в хэше ошибок
         url: {
-            cond: createUrlRegex().test(inp.url),
+            cond: testURLRegex().test(inp.url),
             mess: 'Введите корректный URL',
             param: 'url',
             type: errorKey
         },
         params_1: { // при указанных параметрах заполнено тело POST запроса
-            cond: !(inp.params.length!==0 && inp.body.length!==0),
-            mess: 'Исключите ТЕЛО запроса ИЛИ ПАРАМЕТРЫ',
+            cond: !(Object.keys(inp.params).length!==0 && inp.body.length!==0),
+            mess: 'Исключите тело запроса ИЛИ параметры',
             param: 'body',
             type: errorKey
         },
@@ -109,31 +96,31 @@ const validateInput = function(inp) {
         },
         params_3: { // указан тип контента, предолагающий наличие параметров, но параметров нет
             cond: checkParamsAndContent(inp.params, inp.contentType),
-            mess: `Вы не указали параметры, предполагаемые указанным Content-Type=${inp.contentType}`,
+            mess: 'Нет параметров, предполагаемых указанным Content-Type',
             param: 'params',
             type: errorKey
         },
         body: { // нет ни праметров, ни тела POST-запроса
             cond: !(Object.keys(inp.params).length===0 && inp.body.length===0),
-            mess: 'Укажите ИЛИ ПАРАМЕТРЫ ИЛИ ТЕЛО запроса',
+            mess: 'Нет НИ параметров, НИ тела запроса.',
             param: 'params',
             type: errorKey
         },
         contentType_params: { // для POST-запроса с параметрами указан не корректный Content-Type
             cond: incorrectContentType(inp.params, inp.contentType),
-            mess: 'Укажите корректный Content-Type. Например, "application/x-www-form-urlencoded"',
+            mess: 'Content-Type не указывает на передачу параметров',
             param: 'contentType',
-            type: errorKey
+            type: warnKey
         },
-        contentType: { // не заполнен Content-Type POST-запроса
-            cond: inp.body.length!==0&&inp.contentType,
+        contentType: { // заполнен Content-Type POST-запроса
+            cond: inp.contentType !== '/',
             mess: 'Content-Type POST-запроса обязателен для заполнения',
             param: 'contentType',
             type: errorKey
         },
-        contentType_body: { // содержимое тела запроса не соответствует указанному Content-Type
-            cond: checkContent(inp.body, inp.contentType),
-            mess: 'содержимое тела запроса не соответствует указанному Content-Type',
+        contentType_body: { // содержимое тела запроса соответствует указанному Content-Type
+            cond: checkBody(inp.body, inp.contentType),
+            mess: 'Содержимое тела запроса не соответствует указанному Content-Type',
             param: 'contentType',
             type: warnKey // не препятствовать отправке запроса, но уведомить
         },
@@ -141,6 +128,12 @@ const validateInput = function(inp) {
             cond: inp.body.length==0,
             mess: 'Для метода запроса GET не надо заполнять тело запроса',
             param: 'body',
+            type: warnKey // не препятствовать отправке запроса, но уведомить
+        },
+        contentType_get: { // ненужный Content-Type GET-запроса 
+            cond: inp.contentType === '/',
+            mess: 'Для метода запроса GET не надо указывать Content-Type',
+            param: 'contentType',
             type: warnKey // не препятствовать отправке запроса, но уведомить
         },
         headers: { // заголовок с пустым названием
@@ -160,7 +153,7 @@ const validateInput = function(inp) {
         assertList.headers, assertList.contentType_body
     ];
     const getCheckList = [
-        assertList.url, assertList.body_get,
+        assertList.url, assertList.body_get, assertList.contentType_get,
         assertList.headers, assertList.params_2
     ];
 
@@ -190,7 +183,7 @@ const validateInput = function(inp) {
     }
 
     return checkResults;
-}
+};
 
 
 module.exports = validateInput;

@@ -17,8 +17,6 @@
         var getSelector = postmanFormHandler.getSelectorByName;
         // псевдоним метода записи значения в элемент по его селектору
         var setValue = postmanFormHandler.setValue;
-        // 
-        var getHandler = postmanFormHandler.getHandler;
         // настройка формы (асинхронная загрузка MIME-типов, установка обработчиков добавления полей)
         prepareForm(getSelector);
 
@@ -27,8 +25,9 @@
         sendBtn.onclick = send;
         // кнопка сброса введенных в форму данных
         var resetBtn = document.querySelector(getSelector('resetBtn'));
-        resetBtn.onclick = reset;
-        
+        resetBtn.onclick = function() {
+            window.location='/postman';
+        };
         async function send() {
             var requestData = postmanFormHandler.collectData();
             var fetchParams = {
@@ -79,10 +78,6 @@
                 if (sel) 
                     setValue(sel, paramName, resBody[paramName]);
             }
-        }
-    
-        function reset() {
-            console.log('Was resetted');
         }
     }
 

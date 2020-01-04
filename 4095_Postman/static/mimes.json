@@ -1,15 +1,16 @@
 {
   "text": [
     "plain",
-    "css",
+    "html; charset=UTF-8",
     "javascript",
     "xml; charset=UTF-8",
+    "css",
     "csv",
-    "html; charset=UTF-8",
     "calendar"
   ],
   "application": [
     "json",
+    "x-www-form-urlencoded",
     "xml",
     "ld+json",
     "vnd.apple.installer+xml",
@@ -78,5 +79,8 @@
     "ttf",
     "woff",
     "woff2"
+  ],
+  "multipart": [
+    "form-data"
   ]
 }
