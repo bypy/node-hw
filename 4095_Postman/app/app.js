@@ -1,6 +1,8 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const fetch = require("isomorphic-fetch");
+const sha256 = require('js-sha256').sha256;
 const validateInput = require('./assertion.js');
 
 const webserver = express();
@@ -9,7 +11,27 @@ const servPort = 7980;
 const errorKey = 'error';
 const warnKey = 'warning';
 
+let reqHash = null;
+
 webserver.use(express.json());
+
+webserver.get('/postman/presets', async (req, res) => {
+    let presetsData = fs.readFileSync(path.join(__dirname, '..', 'static', 'presets.json'), 'utf8');
+    let hash = sha256(presetsData);
+    let ifNoneMatch = req.header('If-None-Match');
+    if ( ifNoneMatch && (ifNoneMatch === hash) ) {
+        res.status(304).end();
+        console.log('Cached');
+    } else {
+        res.setHeader('Content-Type', 'application/json; charset=UTF-8');
+        res.setHeader('ETag', hash);
+        res.setHeader('Cache-Control', 'public, max-age=0');
+        res.send(presetsData);
+        // обновить хэш в памяти
+        reqHash = JSON.parse(presetsData);
+    }  
+});
+
 webserver.use('/postman', express.static(path.join(__dirname, '..', 'static')));
 
 webserver.post('/run', async (req, res) => {
@@ -40,7 +62,33 @@ webserver.post('/run', async (req, res) => {
                 [warnKey]: validationResult[warnKey]
             };
         } else {
-            // ошибок нет, проксируем запрос
+            // ошибок нет
+            
+            // если новая конфигурация запроса - сохраняю для переиспользования
+            let presetName = (proxy_body.presetName === '') ? null : proxy_body.preset;
+            const presetList = reqHash ? reqHash['names'] : null;
+            if (presetName && presetList) {
+                // добавить конфигурацию в хэш в памяти
+                presetName = decodeURIComponent(presetName);
+                proxy_body.preset = presetName;
+                let presetIndex = presetList.indexOf(presetName);
+                if (presetIndex < 0) {
+                    // новое имя в списке имен отсутствует
+                    presetIndex = presetList.length;
+                    reqHash.names.push(presetName); 
+                }
+                // теперь в presetIndex указывает на последний элемент для новой конфигурации
+                // или на индекс существующей (перезаписываемой) конфигурации
+                // под числовым ключом presetIndex сохраняю новую конфигурацию запроса
+                reqHash[presetIndex] = proxy_body;
+                let presetsDataS = JSON.stringify(reqHash);
+                let pathToPresets = path.join(__dirname, '..', 'static', 'presets.json');
+                fs.writeFile(pathToPresets, presetsDataS, function(){
+                    console.log('Конфигурация "' + presetName + '" добавлена');
+                });    
+            }
+
+            // проксируем запрос
 
             const method = proxy_body.method.toLowerCase();
             const params = proxy_body.params;
@@ -111,29 +159,11 @@ webserver.post('/run', async (req, res) => {
         res.send(responseBody);
     
     } catch (e) {
-        //console.log(e);
+        console.log(e);
         res.status(500).end();
     }
 
 });
 
-// Тестовый скрипт
-
-// webserver.get('/test', (req, res) => {
-//     console.log(JSON.stringify(req.query));
-//     res.send({resBody: "GET. No body"});
-// });
-
-// const bodyParser = require('body-parser');
-// const multer = require('multer');
-// const upload = multer({ dest: path.join(__dirname,"uploads") });
-// webserver.use(express.urlencoded({extended:true}));
-// webserver.use(bodyParser.text());
-
-// webserver.post('/test', upload.none(), (req, res) => {
-//     console.log(JSON.stringify(req.query));
-//     console.log(JSON.stringify(req.body));
-//     res.send({resBody: JSON.stringify(req.body)});
-// });
 
 webserver.listen(servPort);

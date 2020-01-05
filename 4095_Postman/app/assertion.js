@@ -113,7 +113,7 @@ const validateInput = function(inp) {
             type: warnKey
         },
         contentType: { // заполнен Content-Type POST-запроса
-            cond: inp.contentType !== '/',
+            cond: inp.contentType,
             mess: 'Content-Type POST-запроса обязателен для заполнения',
             param: 'contentType',
             type: errorKey
@@ -130,8 +130,8 @@ const validateInput = function(inp) {
             param: 'body',
             type: warnKey // не препятствовать отправке запроса, но уведомить
         },
-        contentType_get: { // ненужный Content-Type GET-запроса 
-            cond: inp.contentType === '/',
+        contentType_get: { // GET-запрос без заголовка Content-Type
+            cond: !inp.contentType,
             mess: 'Для метода запроса GET не надо указывать Content-Type',
             param: 'contentType',
             type: warnKey // не препятствовать отправке запроса, но уведомить

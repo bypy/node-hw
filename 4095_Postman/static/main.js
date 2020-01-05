@@ -17,8 +17,10 @@
         var getSelector = postmanFormHandler.getSelectorByName;
         // псевдоним метода записи значения в элемент по его селектору
         var setValue = postmanFormHandler.setValue;
+        // метод для отображения подгруженных конфигураций запросов
+        var updatePresetData = postmanFormHandler.updatePresetData;
         // настройка формы (асинхронная загрузка MIME-типов, установка обработчиков добавления полей)
-        prepareForm(getSelector);
+        prepareForm(getSelector, updatePresetData);
 
         // конопка отправки данных формы на сервер
         var sendBtn = document.querySelector(getSelector('sendBtn'));
@@ -29,7 +31,9 @@
             window.location='/postman';
         };
         async function send() {
+            // сбор данных с полей формы
             var requestData = postmanFormHandler.collectData();
+            // параметры запроса к Postman
             var fetchParams = {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -65,6 +69,7 @@
             }
             // отображаем полученный ответ на проксированный запрос
             showResponse(resBody);
+
             scrollToResultElem.scrollIntoView();
             // и предупреждения, если есть
             if (warnMess)
@@ -74,8 +79,11 @@
 
         function showResponse(resBody) {
             for (var paramName in resBody) {
+                // перебор ключей ответа
                 var sel = getSelector(paramName);
-                if (sel) 
+                // если ключ ответа найден в ключах элемента формы
+                if (sel)
+                    // вызвать метод записи данных в этот элемент формы 
                     setValue(sel, paramName, resBody[paramName]);
             }
         }

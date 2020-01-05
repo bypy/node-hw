@@ -15,6 +15,15 @@
                 <!-- REQUEST COLUMN -->
                 <div class="col-md-6 request">
                     <h2>REQUEST</h2>
+                    <div id="preset" class="preset group row">
+                        <div class="col-2 name"><span>Preset</span></div>
+                        <div class="col-10 controls">
+                            <select name="savedPreset">
+                                <option value="">--Choose</option>
+                            </select>
+                            <input type="text" name="newPreset" placeholder="Save as new configuration:">
+                        </div>
+                    </div>
                     <div id="url" class="url group row">
                         <div class="col-2 name"><span>URL</span></div>
                         <div class="col-10 controls">
@@ -66,7 +75,7 @@
                         <textarea name="req-body" rows="10" placeholder="Request body content"></textarea>
                         </div>
                     </div>
-                    <div id="req-headers" class="req-headers group row">
+                    <div id="headers" class="headers group row">
                         <div class="col-2 name"><span>HEADERS</span></div>
                         <div class="col-10 controls">
                             <span class="headers-row"
@@ -99,7 +108,7 @@
                         <div class="col-2 name"><span>CONTENT-TYPE</span></div>
                     </div>
                     <div class="res-headers-wrapper">
-                        <div id="res-headers" class="headers group row">
+                        <div id="res-headers" class="res-headers group row">
                             <div class="col-10 controls">
                                 <textarea name="res-headers" rows="10" placeholder="Response headers"></textarea>
                             </div>
