@@ -9,6 +9,7 @@ const rl = readline.createInterface({
 });
 
 const question = 'Укажите автокомпрессору путь к каталогу или нажмите ввод для выхода: ';
+const packExt = '.gz';
 
 const askPath = async question => {
     return new Promise( (resolve, reject) => {
@@ -31,7 +32,7 @@ const askPath = async question => {
 };
 
 
-const getFileStat = async targPath => {
+const getFileStats = async targPath => {
     return new Promise( (resolve, reject) => {
         
         console.log(`[INFO] Обращение к свойствам объекта файловой системы ${targPath}`);
@@ -51,76 +52,138 @@ const getFileStat = async targPath => {
 };
 
 
-const checkIsDir =  targPath => {
+// const checkIsDir =  targPath => {
+//     return new Promise( async (resolve, reject) => {
+        
+//         console.log(`[INFO] Поиск каталога по указанному пути ${targPath}`);
+        
+//         try {
+//             // вызов функции получения свойств объекта ФС
+//             const stats = await getFileStats(targPath);
+//             const isDir = stats.isDirectory();
+//             if (isDir)
+//                 console.log(`[INFO] Найден каталог по указанному пути ${targPath}`);
+//             else
+//                 console.log(`[INFO] НЕ НАЙДЕН каталог по указанному пути ${targPath}`);
+//             resolve(isDir);
+
+//         } catch (err) {
+//             console.log('Ошибка получения свойств объекта ФС');
+//             reject(err);
+//         }
+
+//     });
+// };
+
+
+function getDirList(dirPath) {
     return new Promise( async (resolve, reject) => {
         
-        console.log(`[INFO] Поиск каталога по указанному пути ${targPath}`);
-        
-        try {
-            // вызов функции получения свойств объекта ФС
-            const stats = await getFileStat(targPath);
-            const isDir = stats.isDirectory();
-            if (isDir)
-                console.log(`[INFO] Найден каталог по указанному пути ${targPath}`); 
-            resolve(isDir);
-
-        } catch (err) {
-            console.log('Ошибка получения свойств объекта ФС');
-            reject(err);
-        }
+        console.log(`[INFO] Сканирую каталог ${dirPath}`);
+        fs.readdir(dirPath, function(err, folderContents){
+            if (err) {
+                console.log('ОШИБКА:', err);
+                reject(err);
+            } else {
+                resolve(folderContents);
+            }
+        });
 
     });
 };
 
 
-
-
-// const processFolderContents = (pathToFolder, fileList) => {
-//     console.log('Анализирую содержимое каталога');
-//     console.log(fileList);
-//     for (let i=0; i<fileList.length; i++) {
-//         let currentFileName = fileList[i];
-//         let currentFilePath = path.join(pathToFolder, currentFileName);
-//         //console.log(`Проверяю ${currentFilePath}`);
-//         checkDirByPath(currentFilePath, processFile);
-//     }
-// };
-
-
-function scanDir(isDir, pathToFolder) {
+const compressFile = async (srcFilePath, srcFileStats) => {
     return new Promise( async (resolve, reject) => {
-        while (!isDir) {
-            try {
-                // Повторяем запрос на ввод пути к каталогу
-                pathToFolder = await askPath(question); // запросим путь к каталогу
-                isDir = await checkIsDir(pathToFolder);
-                if (!isDir) throw new Error();
-            } catch (err) {
-                console.log(`[WARNING] По указанному пути ${pathToFolder} каталог не найден.`);
-                continue;
-            }
-            
+        const packedFilePath = srcFilePath.concat('.gz');
+        try {
+            // проверка на наличие одноименного архива
+            let packedFileStats = await getFileStats(packedFilePath);
+            // архив существует, сравним c датой изменения несжатой версии
+            console.log(srcFileStats.mtime, " Несжатая версия");
+            console.log(packedFileStats.mtime, " Cжатая версия");
+            // сравнить и переписать если надо 
+            // https://stackoverflow.com/questions/11995536/node-js-overwriting-a-file
+        } catch(err) {
+            // архива нет
+            console.log("Начинаю сжатие файла " + path.win32.basename(srcFilePath));
+            fs.createReadStream(srcFilePath)
+                .on('error', function(err){
+                    reject(err.message);
+                })
+                .pipe(zlib.createGzip())
+                .pipe(fs.createWriteStream(packedFilePath))
+                .on('error', function(err){
+                    reject(err.message);
+                })
+                .on('close', ()=>{
+                    resolve();
+                });
         }
-        console.log(`[INFO] Сканирую каталог ${pathToFolder}`);
-        fs.readdir(pathToFolder, function(err, folderContents){
-            if (err) {
-                console.log('ОШИБКА:', err);
-                reject(err);
-            } else {
-                console.log(folderContents);
-                resolve(folderContents);
+    });
+}
+
+
+const processList = async (dirPath, dirList) => {
+    return new Promise( async (resolve, reject) => {
+        console.log ('Получен список' + dirList.toString());
+        try {
+            for (let i=0; i<=dirList.length; i++) {
+                let dirItemName = dirList[i];
+                let dirItemPath = path.join(dirPath, dirItemName);
+                let dirItemStats = await getFileStats(targPath);
+                let isDirFlag = dirItemStats.isDirectory();
+                if ( isDirFlag ) {
+                    // обработать каталог
+                    let innerDirList = await getDirList(dirItemPath);
+                    console.log(innerDirList);
+                    await processList(dirItemPath, innerDirList);
+                } else {
+                    await compressFile(dirItemPath, dirItemStats);
+                }
             }
-        });
+            resolve();
+        } catch(err) {
+            reject(err);
+        }
     });
 };
 
 
 const startCompressor = async () => {
-    //let pathToFolder = await askPath(question); // запросим путь к каталогу
-    //let isDir = await checkDirByPath(pathToFolder); // проверка существования каталога по переданному пути
-    //let dirList = await scanDir(isDir, pathToFolder);
-    let dirList = await scanDir(false, null);
-    process.exit(0); // выход с признаком успешного завершения
+    let dirPath = await askPath(question); // запросим путь к каталогу
+    let isDir = false; // сомневаемся
+
+    while (!isDir) {
+        try {
+            // объект существует?
+            let dirStats = await getFileStats(dirPath);
+            // это каталог?
+            isDir = dirStats.isDirectory();
+            if (!isDir)
+                throw new Error();
+        } catch (err) {
+            console.log(`[WARNING] По указанному пути ${dirPath} каталог не найден.`);
+            // Повторяем запрос на ввод пути к каталогу
+            dirPath = await askPath(question);
+            continue;
+        }   
+    }
+
+    // добились получения пути к каталогу
+    // натравливаем на этот каталог автокомпрессор
+
+    try {
+        const dirList = await getDirList(dirPath);
+        console.log(dirList);
+        await processList(dirPath, dirList);
+        console.log('Stop1');
+    } catch (err) {
+        console.log(err);
+    }
+    console.log('Stop2');
+    
+    //process.exit(0); // выход с признаком успешного завершения
 
 };
 
