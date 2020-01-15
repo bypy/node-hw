@@ -9,20 +9,21 @@ const logFN = path.join(__dirname, '_server.log');
 
 
 webserver.get('/', async (req, res, next) => { 
-    logLineAsync(logFN,"обращение к / - рендерим как /main");
-    console.log("Finish");
+    //logLineAsync(logFN,"обращение к / - рендерим как /main");
+    console.log("Обращение к главной");
     req.url='/upload';
     next();
 });
 
 webserver.get('/upload', (req, res) => {
-    fs.createReadStream('static/upload-form.html').pipe(res);
+    fs.createReadStream(path.join(__dirname, 'static', 'upload-form.html'))
+        .pipe(res);
 });
 
 webserver.post('/upload', (req, res) => {
     res.send('Спасибо!');
 });
 
-webserver.use('/postman', express.static(path.join(__dirname, '..', 'static')));
+webserver.use(express.static(path.join(__dirname, 'static')));
 
 webserver.listen(port);

@@ -1,0 +1,23 @@
+.storageLoader {
+    max-width: 1000px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.attach,
+.comment {
+    width: 400px;
+}
+
+.attach,
+.submit,
+.comment {
+    margin: 1em auto 0;
+}
+
+.comment input,
+.comment label {
+    display: block;
+    width: 396px;
+    margin: 0 auto;
+}
