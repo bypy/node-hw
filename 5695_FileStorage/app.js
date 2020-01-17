@@ -1,44 +1,77 @@
 const express = require('express');
 const path = require('path');
-const bodyParser= require('body-parser');
 const fs = require('fs');
-const multer = require('multer');
 const Busboy = require('busboy');
-// const { logLineAsync } = require('./utils/utils');
-
-const port = 7980;
-const upload = multer({ dest: 'uploads/' });
-// const logFN = path.join(__dirname, '_server.log');
+const uuid = require('uuid-v4');
 
 const webserver = express();
-webserver.use(bodyParser.urlencoded({extended: true}));
+const port = 7980;
+const uploadPath = path.join(__dirname, 'uploads');
+
+const uploadedFilesDataH = {};
+
+const storeFileInfo = (savedName, dataH) => {
+    uploadedFilesDataH[savedName] = dataH;
+    console.log(JSON.stringify(uploadedFilesDataH));
+    console.log('Saved');
+};
 
 webserver.get('/', async (req, res, next) => { 
-    //logLineAsync(logFN,"обращение к / - рендерим как /main");
+    //обращение к / - рендерим как /upload;
     console.log("Обращение к главной");
     req.url='/upload';
     next();
 });
 
 webserver.get('/upload', (req, res) => {
-    // fs.createReadStream(path.join(__dirname, 'static', 'upload-form.html'))
-    //     .pipe(res);
     res.sendFile(path.join(__dirname, 'static', 'upload-form.html'));
 });
 
-//webserver.post('/upload', upload.single('attach'), (req, res) => {
 webserver.post('/upload', (req, res) => {
-    const busboy = new Busboy({ headers: req.headers  });
-    busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
-        console.log(fieldname, filename, encoding, mimetype);
-        file.on('data', data => {
-            console.log('got ' + data.length + ' bytes');
-        });
-    });
-    busboy.on('finish', function() {
-        console.log("That's all folks!");
-    });
+    
+    const uploadingFileInfo = {
+        saveFN:null,
+        origFN:null
+    };
+    const COMMENT_FIELD_NAME = 'comment';
+    const contentLength = req.headers['content-length'];
+    
+    const busboy = new Busboy({ headers: req.headers });
     req.pipe(busboy);
+
+    busboy.on('field', (fieldname, val) => {
+        if (fieldname === COMMENT_FIELD_NAME) {
+            console.log(fieldname, val);
+            uploadingFileInfo[COMMENT_FIELD_NAME] = val;
+        }
+    });
+
+    busboy.on('file', (fieldname, file, filename) => {
+        let fileSize = 0;
+        
+        file.on('data', data => {
+            fileSize += data.length;
+            console.log(`${contentLength - fileSize} bytes remains`);
+        });
+
+        let saveFileName = uuid() + path.extname(filename);
+        uploadingFileInfo.saveFN = saveFileName;
+        uploadingFileInfo.origFN = filename;
+        
+        let saveToPath = path.join(uploadPath,saveFileName);
+        file.pipe(fs.createWriteStream(saveToPath));
+    });
+
+    busboy.on('finish', function() {
+        console.log('Zero bytes remains');
+        if (uploadingFileInfo.saveFN && uploadingFileInfo.origFN) {// можно загружать файл без комментария
+            console.log('Ready to save in hash');
+            let nameKey = uploadingFileInfo.origFN;
+            delete uploadingFileInfo.origFN;
+            storeFileInfo(nameKey, uploadingFileInfo);
+        }
+    });
+    
     res.send('Спасибо!');
 });
 
