@@ -1,6 +1,10 @@
-.storageLoader {
+.storageLoader,
+.downloads {
     max-width: 1000px;
-    margin: 0 auto;
+    margin: 0 auto;   
+}
+
+.storageLoader {
     text-align: center;
 }
 
@@ -21,3 +25,25 @@
     width: 396px;
     margin: 0 auto;
 }
+
+table.downloads {
+    margin-top: 2em;
+    border-collapse: collapse;
+}
+
+.downloads th,
+.downloads td {
+    border: 1px solid #555;
+    padding: 5px 10px;
+}
+
+.downloads .name,
+.downloads .comment-note {
+    width: 40%;
+}
+
+.downloads .download {
+    width: 20%;
+}
+
+
