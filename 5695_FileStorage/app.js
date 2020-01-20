@@ -84,12 +84,16 @@ const storeFileInfo = data => {
 const getDownloadsMarkup = () => {
     let ids = Object.keys(fileInfoHash);
     ids.sort(sortIdKeys);
-    let tableRows = ids.map( id => 
-        `<tr><td>${fileInfoHash[id]['origFN']}</td>
-        <td>${fileInfoHash[id]['comment']}</td>
-        <td><a href="/${id.toString()}">Скачать файл<a></td>
-        </tr>`
-    );
+    let tableRows = ids.map( id => {
+        if (fileInfoHash[id]['comment'] == fileMissingWarn)
+            return null
+        else {
+            return `<tr><td>${fileInfoHash[id]['origFN']}</td>
+                    <td>${fileInfoHash[id]['comment']}</td>
+                    <td><a href="/${id.toString()}">Скачать файл<a></td>
+                    </tr>` 
+        } 
+    });
     return tableRows.join('\n');
 };
 
@@ -106,34 +110,7 @@ const getPageMarkup = downloadsMarkup => {
 const getFileInfoById = id => fileInfoHash[id];
 
 
-// позволяет изменить данные о файле в хэше и файловой БД
-const changeFileInfoById = (id, param, newValue) => {
-    if (typeof id !== 'string')
-        id += '';
-    fileInfoHash[id][param] = newValue;
-};
-
-
-// const restoreParamFromDB = (id, param) => {
-//     return new Promise(  (resolve, reject) => {
-//         if (typeof id !== 'string')
-//             id += '';
-//         const target = path.join(dbPath, id.concat('.json'));
-//         fs.readFile(target, 'utf8', (error, data) => {
-//             if (error) {
-//                 console.log(error);
-//                 reject(error);
-//             } else {
-//                 const fileRec = JSON.parse(data);
-//                 fileInfoHash[id][param] = fileRec[param];
-//                 resolve(`Параметр ${param} восстановлен из файла описания ${id}.json в хэш`);
-//             }
-//         });
-//     });
-// };
-
-
-const getUploadsList = async uploadPath => {
+const getUploadsList = uploadPath => {
     return new Promise((resolve, reject) => {
         fs.readdir(uploadPath, (err, files) => {
             if (err)
@@ -145,38 +122,47 @@ const getUploadsList = async uploadPath => {
 };
 
 
-const removeDeletedFromDB = async() => {
-    try {
-        // список файлов в каталоге загрузок
-        const uploadsList = await getUploadsList(uploadPath);
-        // проходим по хэшу с данными о загрузках и проверяем "живы" ли все файлы
-        for (let id in fileInfoHash) {
-            let fileName = fileInfoHash[id]['saveFN'];
-            if (uploadsList.indexOf(fileName) === -1) {
-                // файла fileName в каталоге загрузок уже нет, удалить из хэша
-                delete fileInfoHash[id];
-                // из каталога файловой БД перекинуть json файл в бэкап-каталог
-                const fileRecName = id.concat('.json');
-                const readStream = fs.createReadStream(path.join(dbPath, fileRecName));
-                const writeStream = fs.createWriteStream(path.join(deletedPath,fileRecName));
+const moveFile = (srcFilePath, targetFilePath) => {
+    return new Promise( (resolve, reject) => {
+        fs.createReadStream(srcFilePath)
+            .on('error', err => {
+                reject(err);
+            })
+            .pipe(fs.createWriteStream(targetFilePath))
+            .on('error', err => {
+                reject(err);
+            })
+            .on('close', ()=>{
+                fs.unlink(srcFilePath, err => {
+                    if (err)
+                        reject(err);
+                    else
+                        resolve();
+                })
+            });
+    });
+};
 
-                readStream.on('error', console.log('Error reading file ' + fileRecName));
-                writeStream.on('error', console.log('Error writing file ' + fileRecName));
 
-                readStream.on('close', function () {
-                    fs.unlink(oldPath, callback);
-                });
-
-                readStream.pipe(writeStream);
-                
+const removeDeletedFromDB = async uploadsList => {    
+    // проходим по хэшу с данными о загрузках и проверяем "живы" ли все файлы
+    for (let id in fileInfoHash) {
+        let fileName = fileInfoHash[id]['saveFN'];
+        if (uploadsList.indexOf(fileName) === -1) {
+            // файла fileName в каталоге загрузок уже нет, удалить из хэша
+            delete fileInfoHash[id];
+            // из каталога файловой БД перекинуть json файл с данными этой загрузки в бэкап-каталог
+            const srcPath = path.join(dbPath, id.concat('.json'));
+            const targPath = path.join(deletedPath, id.concat('.json'));
+            try {
+                await moveFile(srcPath, targPath);
+            } catch (err) {
+                console.log(err);
+                continue;
             }
-
         }
-
-    } catch(err) {
-        console.log(err);
     }
-
+    Promise.resolve();
 };
 
 
@@ -187,24 +173,30 @@ webserver.get('/:id', (req, res, next) => {
     const id = req.params.id;
     if (/\d/.test(parseInt(id))) {
         const fileInfo = getFileInfoById(id);
-        const originalName = encodeURIComponent(fileInfo.origFN);
-        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${originalName}`); // https://stackoverflow.com/questions/7967079/special-characters-in-content-disposition-filename/7969807#7969807
-        // отправка запрошенного файла
-        res.sendFile(path.join(__dirname,'upload',fileInfo.saveFN), async (err) => {
-            if (err) {
-                // если файл не найден
-                console.log(err);
-                res.setHeader('Content-Type', 'text/html');
-                res.removeHeader('Content-Disposition');
-                res.status(404).sendFile(path.join(__dirname, 'static', fourOfour));
-                // И ОПИСАНИЕ ФАЙЛА ЕСТЬ В ХЭШЕ
-                changeFileInfoById(id, 'comment', fileMissingWarn);  // заменить в хэше комментарий на 'ФАЙЛ УДАЛЕН!'
-                // инициировать проверку доступности всех загруженных файлов по списку из файловой БД
-            }    
-        });
-    } else {
-        next();
+        if (!fileInfo) {
+            next();
+        } else {
+            const originalName = encodeURIComponent(fileInfo.origFN);
+            res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${originalName}`); // https://stackoverflow.com/questions/7967079/special-characters-in-content-disposition-filename/7969807#7969807
+            // отправка запрошенного файла
+            const downloadFilePath = path.join(__dirname,'upload',fileInfo.saveFN);
+            res.sendFile(downloadFilePath, async err => {
+                if (err) {
+                    // если файл не найден
+                    console.log(err);
+                    res.setHeader('Content-Type', 'text/html');
+                    res.removeHeader('Content-Disposition');
+                    res.status(404).sendFile(path.join(__dirname, 'static', fourOfour));
+                    // если файл не найден НО ЕГО ОПИСАНИЕ ЕСТЬ В ХЭШЕ (ФАЙЛ УДАЛЕН С СЕРВЕРА)
+                    const uploadsList = await getUploadsList(uploadPath); // получить список файлов в каталоге загрузок
+                    await removeDeletedFromDB(uploadsList); // удалить из хэша записи по файлам, которых нет в каталоге загрузок
+                    // при первом же обновлении страницы строки с записями удаленных файлов
+                }
+            });
+        }
     }
+    else
+        next();
 });
 
 
@@ -243,7 +235,7 @@ webserver.post('/upload', (req, res) => {
 
     
     const noFileResponse = () => {
-        res.send('<p>Вы не выбрали файл для загрузки. Вернитесь <a href="#" onclick="window.history.back()" style="font-size: 2em;">назад</a>.</p>');
+        res.send('<p>Вы не выбрали файл для загрузки. Вернитесь <a href="/" style="font-size: 2em;">на главную</a>.</p>');
     };
 
     
@@ -305,5 +297,5 @@ webserver.post('/upload', (req, res) => {
 
 webserver.get('*', function(req, res){
     // сюда попадут все get-запросы, не попавшие под предыдущие роуты
-    res.status(404).send('<b>ИЗВИНИТЕ!</b> такого файлика - '+req.path+' - у нас нет!');
+    res.status(404).sendFile(path.join(__dirname, 'static', fourOfour));
 });
