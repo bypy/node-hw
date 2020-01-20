@@ -1,0 +1,16 @@
+		<GetRSAPublicKeyRq>
+			<RqUID>b05890401e844cee96c6bc953d81df39</RqUID>
+			<RqTm>2019-12-30T17:16:09</RqTm>
+			<OperUID>5ea428aa67504cc19a40405f8ff86ff3</OperUID>
+			<SPName>IB</SPName>
+			<SystemId>SVFE</SystemId>
+			<BankInfo>
+				<BranchId>1777000</BranchId>
+				<RegionId>SBBY</RegionId>
+			</BankInfo>
+			<CardInfo>
+				<CardId>210000032550</CardId>
+				<EndDt>1122</EndDt>
+			</CardInfo>
+			<AuthenticityCode>9A21C62D1C64491E</AuthenticityCode>
+		</GetRSAPublicKeyRq>

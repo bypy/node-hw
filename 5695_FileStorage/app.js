@@ -9,10 +9,11 @@ const webserver = express();
 const port = 7980;
 const uploadPath = path.join(__dirname, 'upload'); // путь к каталогу для помещения загруженных пользователями файлов
 const dbPath = path.join(__dirname, 'data'); // путь к каталогу файловой базы данных с информацией о загруженных файлах (нужна для восстановления хэша после возможного рестарта сервера)
+const deletedPath = path.join(__dirname, 'deleted');
 const mainPagePath = path.join(__dirname, 'static', 'upload-form.html');
 const fileInfoHash = {}; // хэш для хранения данных о загруженных файлах
 const fileInfoArr = fs.readdirSync(dbPath); // список записей о загруженных файлах в файловой ДБ
-let nextSaveId = fileInfoArr.length ; // идентификатор для сохранения в файловую БД следующего файла с описанием новой загрузки
+let nextSaveId = fileInfoArr.length ; // идентификатор для сохранения в файловую БД следующего файла с описанием новой загрузки. При первом запуске будет равен нулю.
 let mainPageContent = fs.readFileSync(mainPagePath, 'utf8'); // "пустышка" главной страницы для подстановки в неё html-кода таблицы с закачками
 let mainPageHash = sha256(mainPageContent); // для проверки возможности ответить 304 будем подсчитывать хэш главной старницы после каждого изменения
 const fourOfour = '404.html';
@@ -23,9 +24,12 @@ const sortIdKeys = (prev, next) => {
     if (parseInt(prev) < parseInt(next)) return 1; else return -1;
 };
 
-// после перезапуска сервера заполняет хэш в памяти согласно файлов, расположенных в каталоге загрузок
+
+// в начале перезапуска сервера заполняет хэш с информацией о загрузках в памяти данными, считанными из всех json-файлов файловой БД
 const restoreFileInfo2Hash = async (idsArr, done) => {
-    idsArr.sort(sortIdKeys).reverse(); //
+    idsArr.sort(sortIdKeys).reverse(); // упорядочивает id, сортируя по убыванию, затем изменят порядок на противоположный
+    const currentSaveId = idsArr[idsArr.length - 1]; // получаем имя файла с максимальным айдишником: {id}.json
+    nextSaveId = parseInt(currentSaveId) + 1; // получаем идентификатор для сохранения следующего пользовательского файла
     for (let i=0; i<idsArr.length; i++) {
         let current = path.join(dbPath, idsArr[i]);
         try {
@@ -36,10 +40,29 @@ const restoreFileInfo2Hash = async (idsArr, done) => {
             continue;
         }
     }
-    done();
+    // выполним опциональный колбек (запуск слушателя запросов)
+    if (done) done();
 };
 
-// помещает данные о только что загруженном файле в файловую БД на json-ах
+
+// запуск слушателя запросов
+const startWebServer = () => {
+    webserver.listen(port , () => {
+        console.log(`Listening port ${port}...`);
+    });
+};
+
+
+// запуск слушателя запросов
+if (nextSaveId > 0)
+    // с восставновлением данных о загруженных файлах в хэш в памяти (перезапуск сервера)
+    restoreFileInfo2Hash(fileInfoArr, startWebServer);
+else
+    // первый запуск
+    startWebServer();
+
+
+// помещает данные о только что загруженном файле в файловую БД на json-ах и в хэш
 const storeFileInfo = data => {
     return new Promise( (resolve, reject) => {
         const fileInfoSavePath = path.join(dbPath, nextSaveId.toString().concat('.json'));
@@ -56,6 +79,7 @@ const storeFileInfo = data => {
     });
 };
 
+
 // формирует разметку таблицы для скачивания файлов с учетом только что добавленного файла
 const getDownloadsMarkup = () => {
     let ids = Object.keys(fileInfoHash);
@@ -69,6 +93,7 @@ const getDownloadsMarkup = () => {
     return tableRows.join('\n');
 };
 
+
 // помещает обновленный код html-таблицы для скачивания файлов в разметку главной страницы
 const getPageMarkup = downloadsMarkup => {
     const newMainMarkup = mainPageContent.split('{$}').join(downloadsMarkup);
@@ -76,8 +101,10 @@ const getPageMarkup = downloadsMarkup => {
     return newMainMarkup;
 };
 
+
 // возвращает данные о файле из хэша по его идентификатору
 const getFileInfoById = id => fileInfoHash[id];
+
 
 // позволяет изменить данные о файле в хэше и файловой БД
 const changeFileInfoById = (id, param, newValue) => {
@@ -87,39 +114,70 @@ const changeFileInfoById = (id, param, newValue) => {
 };
 
 
-const restoreParamFromDB = (id, param) => {
-    return new Promise(  (resolve, reject) => {
-        if (typeof id !== 'string')
-            id += '';
-        const target = path.join(dbPath, id.concat('.json'));
-        fs.readFile(target, 'utf8', (error, data) => {
-            if (error) {
-                console.log(error);
-                reject(error);
-            } else {
-                const fileRec = JSON.parse(data);
-                fileInfoHash[id][param] = fileRec[param];
-                resolve(`Параметр ${param} восстановлен из файла описания ${id}.json в хэш`);
-            }
+// const restoreParamFromDB = (id, param) => {
+//     return new Promise(  (resolve, reject) => {
+//         if (typeof id !== 'string')
+//             id += '';
+//         const target = path.join(dbPath, id.concat('.json'));
+//         fs.readFile(target, 'utf8', (error, data) => {
+//             if (error) {
+//                 console.log(error);
+//                 reject(error);
+//             } else {
+//                 const fileRec = JSON.parse(data);
+//                 fileInfoHash[id][param] = fileRec[param];
+//                 resolve(`Параметр ${param} восстановлен из файла описания ${id}.json в хэш`);
+//             }
+//         });
+//     });
+// };
+
+
+const getUploadsList = async uploadPath => {
+    return new Promise((resolve, reject) => {
+        fs.readdir(uploadPath, (err, files) => {
+            if (err)
+                reject(err);
+            else
+                resolve(files);
         });
     });
 };
 
 
-// запуск слушателя запросов
-const startWebServer = () => {
-    webserver.listen(port , () => {
-        console.log('Listening port 7980...');
-    });
+const removeDeletedFromDB = async() => {
+    try {
+        // список файлов в каталоге загрузок
+        const uploadsList = await getUploadsList(uploadPath);
+        // проходим по хэшу с данными о загрузках и проверяем "живы" ли все файлы
+        for (let id in fileInfoHash) {
+            let fileName = fileInfoHash[id]['saveFN'];
+            if (uploadsList.indexOf(fileName) === -1) {
+                // файла fileName в каталоге загрузок уже нет, удалить из хэша
+                delete fileInfoHash[id];
+                // из каталога файловой БД перекинуть json файл в бэкап-каталог
+                const fileRecName = id.concat('.json');
+                const readStream = fs.createReadStream(path.join(dbPath, fileRecName));
+                const writeStream = fs.createWriteStream(path.join(deletedPath,fileRecName));
+
+                readStream.on('error', console.log('Error reading file ' + fileRecName));
+                writeStream.on('error', console.log('Error writing file ' + fileRecName));
+
+                readStream.on('close', function () {
+                    fs.unlink(oldPath, callback);
+                });
+
+                readStream.pipe(writeStream);
+                
+            }
+
+        }
+
+    } catch(err) {
+        console.log(err);
+    }
+
 };
-
-
-if (nextSaveId > 0)
-    // восставновление данных о загруженных файлах в хэш в памяти
-    // с запуском слушателя запросов
-    restoreFileInfo2Hash(fileInfoArr, startWebServer);
-else
-    startWebServer();
 
 
 webserver.use(express.static(path.join(__dirname, 'static')));
@@ -130,8 +188,7 @@ webserver.get('/:id', (req, res, next) => {
     if (/\d/.test(parseInt(id))) {
         const fileInfo = getFileInfoById(id);
         const originalName = encodeURIComponent(fileInfo.origFN);
-        // https://stackoverflow.com/questions/7967079/special-characters-in-content-disposition-filename/7969807#7969807
-        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${originalName}`);
+        res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${originalName}`); // https://stackoverflow.com/questions/7967079/special-characters-in-content-disposition-filename/7969807#7969807
         // отправка запрошенного файла
         res.sendFile(path.join(__dirname,'upload',fileInfo.saveFN), async (err) => {
             if (err) {
@@ -140,19 +197,10 @@ webserver.get('/:id', (req, res, next) => {
                 res.setHeader('Content-Type', 'text/html');
                 res.removeHeader('Content-Disposition');
                 res.status(404).sendFile(path.join(__dirname, 'static', fourOfour));
-                // ЕСЛИ НЕ НАЙДЕН ФАЙЛ, ОПИСАНИЕ КОТОРОГО ЕСТЬ В ХЭШЕ 
+                // И ОПИСАНИЕ ФАЙЛА ЕСТЬ В ХЭШЕ
                 changeFileInfoById(id, 'comment', fileMissingWarn);  // заменить в хэше комментарий на 'ФАЙЛ УДАЛЕН!'
-            } else {
-                // ЕСЛИ ВДРУГ ФАЙЛ СТАЛ ДОСТУПЕН, А ДО ЭТОГО БЫЛ ПОМЕЧЕН КАК "УДАЛЕН"
-                const recData = getFileInfoById(id);
-                const commentValue = recData['comment']; 
-                if ( commentValue === fileMissingWarn ) {
-                    // Файл снова доступен - заменить в хэше комментарий 'ФАЙЛ УДАЛЕН!' на оригинальный из файловой БД
-                    restoreParamFromDB(id, 'comment', '')
-                        .then( result => { console.log(result); } )
-                        .catch( err => { console.log(err); } );
-                }
-            }
+                // инициировать проверку доступности всех загруженных файлов по списку из файловой БД
+            }    
         });
     } else {
         next();
@@ -195,9 +243,7 @@ webserver.post('/upload', (req, res) => {
 
     
     const noFileResponse = () => {
-        // сделать отправку через вебсокет
-        // {"error":"Вы не выбрали файл для загрузки", "data":null}
-        res.send('Вы не выбрали файл для загрузки');
+        res.send('<p>Вы не выбрали файл для загрузки. Вернитесь <a href="#" onclick="window.history.back()" style="font-size: 2em;">назад</a>.</p>');
     };
 
     
@@ -233,7 +279,7 @@ webserver.post('/upload', (req, res) => {
         busboy.on('finish', function() {
             console.log('0 bytes remains');
             if ( !uploadFileInfo.hasOwnProperty('origFN') ) {
-                // файл обязателен (комментарий нет)
+                // файл обязателен (а комментарий -- нет)
                 noFileResponse();
                 return;
             } else {

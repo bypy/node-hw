@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2013 (http://www.altova.com) by  () -->
+<xsd:schema xmlns:tns="http://www.bps-sberbank.by/SendInteractionClientRq" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.bps-sberbank.by/SendInteractionClientRq" elementFormDefault="qualified" attributeFormDefault="unqualified">
+	<xsd:annotation>
+		<xsd:documentation>Передача информации о событии звонка в КЦ CRM</xsd:documentation>
+	</xsd:annotation>
+	<xsd:element name="SendInteractionClientRq" type="tns:SendInteractionClientRqType"/>
+	<xsd:complexType name="generalInfoType">
+		<xsd:sequence>
+			<xsd:element name="msgId" type="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation>Уникальный идентификатор запроса (UID)</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="msgFrom" type="xsd:string" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Код источника информации</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="msgDate" type="xsd:dateTime">
+				<xsd:annotation>
+					<xsd:documentation>Дата формирования запроса</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="msgTo" type="xsd:string" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Код получателя информации</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="replyId" type="xsd:string" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Уникальный идентификатор ответа (UID)</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="replyQ" type="xsd:string" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Менеджер и очередь MQ</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="sourceQmgr" type="xsd:string" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Менеджер MQ системы источника запроса</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="businessInfoType">
+		<xsd:sequence>
+			<xsd:element name="phone_number" type="xsd:string" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Номер телефон</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="crm_id" type="xsd:string" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>id клиента CRM</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="activity_id" type="xsd:string" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Идентификатор родительского действия</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="list_activities" minOccurs="0">
+				<xsd:annotation>
+					<xsd:documentation>Блок данных по дочерным действиям</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="activity" minOccurs="0" maxOccurs="unbounded">
+							<xsd:annotation>
+								<xsd:documentation> </xsd:documentation>
+							</xsd:annotation>
+							<xsd:complexType>
+								<xsd:sequence>
+									<xsd:element name="activity_id" type="xsd:string" minOccurs="0">
+										<xsd:annotation>
+											<xsd:documentation>Идентификатор дочернего действия</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="identification_source" type="xsd:string" minOccurs="0">
+										<xsd:annotation>
+											<xsd:documentation>Признак идентификации 0-Алеся, 1- оператор КЦ</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="start_dt" type="xsd:string" minOccurs="0">
+										<xsd:annotation>
+											<xsd:documentation>Дата и время совершения коммуникации</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="exit_reason" type="xsd:string" minOccurs="0">
+										<xsd:annotation>
+											<xsd:documentation>Причина закрытия действия </xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="list_service_requests" minOccurs="0">
+										<xsd:annotation>
+											<xsd:documentation>Блок данных по обращению</xsd:documentation>
+										</xsd:annotation>
+										<xsd:complexType>
+											<xsd:sequence>
+												<xsd:element name="service_request" maxOccurs="unbounded">
+													<xsd:complexType>
+														<xsd:sequence>
+															<xsd:element name="service_id" type="xsd:string" minOccurs="0">
+																<xsd:annotation>
+																	<xsd:documentation>Идентификатор обращения</xsd:documentation>
+																</xsd:annotation>
+															</xsd:element>
+															<xsd:element name="subject" type="xsd:string">
+																<xsd:annotation>
+																	<xsd:documentation>Тематика обращения</xsd:documentation>
+																</xsd:annotation>
+															</xsd:element>
+															<xsd:element name="service_type" type="xsd:string" minOccurs="0">
+																<xsd:annotation>
+																	<xsd:documentation>Тип обращения</xsd:documentation>
+																</xsd:annotation>
+															</xsd:element>
+															<xsd:element name="exit_reason_subject" type="xsd:string">
+																<xsd:annotation>
+																	<xsd:documentation>Причина закрытия обращения</xsd:documentation>
+																</xsd:annotation>
+															</xsd:element>
+														</xsd:sequence>
+													</xsd:complexType>
+												</xsd:element>
+											</xsd:sequence>
+										</xsd:complexType>
+									</xsd:element>
+								</xsd:sequence>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="SendInteractionClientRqType">
+		<xsd:sequence>
+			<xsd:element name="generalInfo" type="tns:generalInfoType">
+				<xsd:annotation>
+					<xsd:documentation>Техническая информация</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+			<xsd:element name="businessInfo" type="tns:businessInfoType">
+				<xsd:annotation>
+					<xsd:documentation>Бизнес данные</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+</xsd:schema>

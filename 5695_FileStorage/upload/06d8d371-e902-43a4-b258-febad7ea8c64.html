@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>3097 Validation form</title>
+    <style>
+        html { font-size: 200%; }
+        form { max-width: 20em; margin-left: auto; margin-right: auto; }
+        form * { font-size: inherit; }
+    </style>
+</head>
+
+<body>
+    <form action="http://178.172.195.18:7980/validate" method="get" novalidate>
+        <fieldset>
+            <legend class="legend">Требуется авторизация</legend>
+            <p><input type="text" name="username" placeholder="Login" autocomplete="off"
+                    onfocus='this.placeholder=""'
+                        onblur='this.value?this.placeholder="":this.placeholder="Login"' autofocus></p>
+
+            <p><input type="password" name="password" placeholder="Password" autocomplete="off"
+                    onfocus='this.placeholder=""'
+                        onblur='this.placeholder?this.placeholder="":this.placeholder="Password"'></p>
+
+            <p>
+                <input type="submit" value="Enter">
+            </p>
+        </fieldset>   
+    </form>
+</body>
+
+</html>
