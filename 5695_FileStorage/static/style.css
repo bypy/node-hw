@@ -21,13 +21,44 @@ body {
 .submit,
 .comment {
     margin: 1em auto 0;
+    font-size: 1em;
 }
 
 .comment input,
 .comment label {
     display: block;
-    width: 396px;
+    width: 390px;
     margin: 0 auto;
+}
+
+.comment input {
+    height: 1.5em;
+    background: transparent;
+    font-size: 1em;
+    padding: 3px 1px 3px 5px;
+}
+
+.comment {
+    position: relative;
+}
+
+.progress,
+.percents {
+    position: absolute;
+}
+
+.progress {
+    background-color: aqua;
+    top: 2px;
+    height: 2em;
+    left: 0;
+    right: 100%;
+    z-index: -1;
+}
+
+.percents {
+    right: -5.5ex;
+    top: .4em;
 }
 
 table.downloads {
@@ -49,5 +80,7 @@ table.downloads {
 .downloads .download {
     width: 20%;
 }
+
+
 
 

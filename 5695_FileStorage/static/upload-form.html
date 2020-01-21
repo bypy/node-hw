@@ -8,10 +8,11 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <form id="storageLoader" class="storageLoader" action="/upload" method="POST" enctype="multipart/form-data">
+    <form id="storageLoader" class="storageLoader" action="/upload" method="POST" enctype="multipart/form-data" autocomplete="off">
         <input id="attachedFile" class="attach" type="file" name="attachedFile">
         <div class="comment">
             <input id="comment" type="text" name="comment">
+            <div class="progress"></div><div class="percents"></div>
             <label for="comment">* описание файла</label>
         </div>
         <input id="submit" class="submit" type="submit" value="Отправить файл">
@@ -30,6 +31,8 @@
     </table>
     <script>
         (function() {
+            var progress = document.getElementsByClassName('progress')[0];
+            var percents = document.getElementsByClassName('percents')[0];
 
             var getUploadFormData = function(form) {
                 var dataH = {};
@@ -38,6 +41,8 @@
                 return dataH;
             };
 
+            var controller = new AbortController(); // для прерывания Fetch
+
             var sendData = function(data) {
                 //var targetURL = 'http://localhost:7980/upload';
                 var targetURL = '/upload';
@@ -45,14 +50,16 @@
                 //formData.append('connId', data.connId);
                 formData.append('comment', data.comment);
                 formData.append('attachedFile', data.attachedFile);
-
+                
                 var fetchOptions = {
                     method: "post",
                     body: formData,
                     headers: {
                         'x-socket-id': data.connId
-                    }
+                    },
+                    signal: controller.signal
                 };
+
 
                 fetch(targetURL, fetchOptions)
                     .then(function(response){
@@ -70,15 +77,32 @@
                     });
             };
 
+            var updateProgressBar = function(floatValueS) {
+                //var roundedInt = parseInt(floatValueS * 100) / 100;
+                var roundedInt = parseInt(floatValueS);
+                progress.style.right = (100 - roundedInt) + '%';
+                percents.textContent = roundedInt + '%';
+            };
+
             var extendSubmitAction = function(EO) {
                 var uploadForm = document.forms.storageLoader;
                 var sendBtn = document.getElementById('submit');
                 
+                // признак закачки и ссылка на сокет  соединение
+                var currentConnection = null;
+                
                 sendBtn.addEventListener('click', function(EO) {
+
+                    if (currentConnection) {
+                        controller.abort(); // асинхронное прерывание fetch
+                        currentConnection.send('STOP');
+                        currentConnection.close();
+                    }
+
                     EO = EO || window.event;
                     //EO.stopPropagation();
                     EO.preventDefault();
-
+                    EO.target.value = 'Отменить отправку';
                     var uploadFormData = getUploadFormData(uploadForm);
 
                     // инициализация ws-клиента
@@ -98,8 +122,11 @@
                             // отправляю данные, обогатив айдишником
                             uploadFormData.connId = event.data.slice(1);
                             sendData(uploadFormData);
+                        } else {
+                            // статистика загрузки для отображения
+                            console.log('сообщение от сервера: '+event.data);
+                            updateProgressBar(event.data);
                         }
-                        console.log('сообщение от сервера: '+event.data);
 
                     }
                     connection.onerror = function(error) {
@@ -108,9 +135,9 @@
                     connection.onclose = function() {
                         console.log("соединение с сервером закрыто");
                         connection=null;
-                        // освежить страницу
-                        // location.reload();
                     };
+                    // выполняющаяся закачка
+                    currentConnection = connection;
 
                 }, false);
             };

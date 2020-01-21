@@ -60,6 +60,8 @@ const startWebServer = () => {
         console.log(`Listening port ${port}...`);
         // ws
         wss.on('connection', socket => {
+            console.log('new socket connected');
+
             let wsId = uuid();
             // держи id
             socket.send('#'+wsId);
@@ -67,14 +69,18 @@ const startWebServer = () => {
             wsClients[wsId] = socket;
 
             socket.on('message', message => {
-                console.log(message);
+                if (message === 'STOP') {
+                    console.log('Клиент отменил передачу файла');
+                    socket.terminate();
+                    delete wsClients[wsId];
+                }
             });
     
             socket.on('close', () => {
                 console.log('socket disconnected');
             });
     
-            console.log('new socket connected');
+            
         });
 
         console.log('upload server waiting for connections on ws://localhost:'+wsport); 
@@ -265,7 +271,13 @@ webserver.post('/upload', (req, res) => {
 
     const sendProgress = (frac) => {
         let percent = frac*100;
-        wsClients[soсketId].send(percent);
+        let targetConnection = wsClients[soсketId];
+        // после команды на отмену загрузки данные все еще приходят, а соединение закрыто/удалено
+        try{
+            targetConnection.send(percent);
+        } catch(err) {
+            return;
+        }
     };
 
     try {
@@ -286,15 +298,12 @@ webserver.post('/upload', (req, res) => {
                 noFileResponse();
                 return;
             }
-
-            //console.log('Здесь установить сокет-соединение');
-            
+         
 
             let fileSize = 0;
 
             file.on('data', dataChunk => {
                 fileSize += dataChunk.length;
-                console.log(`${contentLength - fileSize} bytes remains`);
                 sendProgress(fileSize/contentLength);
             });
 
@@ -306,26 +315,21 @@ webserver.post('/upload', (req, res) => {
         });
 
         busboy.on('finish', function() {
-            console.log('0 bytes remains');
             if ( !uploadFileInfo.hasOwnProperty('origFN') ) {
                 // файл обязателен (а комментарий -- нет)
                 noFileResponse();
                 return;
             } else {
-                console.log('Здесь разорвать сокет-соединение');
-                wsClients[soсketId].terminate();
-                delete wsClients[soсketId];
-                console.log('Ready to save in hash');
+                
                 storeFileInfo(uploadFileInfo)
                     .then( () => {
-                        //res.redirect(303, '/'); // GET
                         res.send('OK'); // неважно что
                     })
                     .catch( (err) => {
                         console.log(err);
-                        //res.redirect(303, '/'); // GET
                         res.send('ERROR'); // неважно что
-                    });
+                    })
+                    ;
             }
         });
 
