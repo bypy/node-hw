@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <form class="storageLoader" action="/upload" method="POST" enctype="multipart/form-data">
+    <form id="storageLoader" class="storageLoader" action="/upload" method="POST" enctype="multipart/form-data">
         <input id="attachedFile" class="attach" type="file" name="attachedFile">
         <div class="comment">
             <input id="comment" type="text" name="comment">
@@ -28,5 +28,88 @@
         {$}
         </tbody>
     </table>
+    <script>
+        (function() {
+
+            var getUploadFormData = function(form) {
+                var dataH = {};
+                dataH.comment = form.elements.comment.value;
+                dataH.attachedFile = form.elements.attachedFile.files[0];
+                return dataH;
+            };
+
+            var sendData = function(data) {
+                var targetURL = 'http://localhost:7980/upload';
+                //var targetURL = '/upload';
+                var formData = new FormData();
+                formData.append('connId', data.connId);
+                formData.append('comment', data.comment);
+                formData.append('attachedFile', data.attachedFile);
+
+                var fetchOptions = {
+                    method: "post",
+                    body: formData,
+                };
+
+                fetch(targetURL, fetchOptions)
+                    .then(function(response){
+                        if (response.status !== 200)
+                            throw new Error('Отправка данных неудачна');
+                        console.log(response.text());
+                    })
+                    .catch(function(error){
+                        console.log(error);
+                    });
+            };
+
+            var extendSubmitAction = function(EO) {
+                var uploadForm = document.forms.storageLoader;
+                var sendBtn = document.getElementById('submit');
+                
+                sendBtn.addEventListener('click', function(EO) {
+                    EO = EO || window.event;
+                    EO.stopPropagation();
+
+                    var uploadFormData = getUploadFormData(uploadForm);
+
+                    // инициализация ws-клиента
+                    var url = 'ws://localhost:7981';
+                    console.log("Trying to connect to server");
+                    
+                    var connection = new WebSocket(url);
+
+                    connection.onopen = function(event) {
+                        connection.send('give me id');
+                        console.log('Соединение открыто. Отправляю файл');
+                    };
+
+                    connection.onmessage = function(event) {
+                        if (event.data[0] === '#') {
+                            // пришел id
+                            // отправляю данные, обогатив айдишником
+                            uploadFormData.connId = event.data.slice(1);
+                            sendData(uploadFormData);
+                        }
+                        console.log('сообщение от сервера: '+event.data);
+
+                    }
+                    connection.onerror = function(error) {
+                        console.log('WebSocket error:',error);
+                    };
+                    connection.onclose = function() {
+                        console.log("соединение с сервером закрыто");
+                        connection=null;
+                        // освежить страницу
+                        location.reload();
+                    };
+
+                }, false);
+            };
+
+            
+            document.addEventListener('DOMContentLoaded', extendSubmitAction, false);
+        }())
+        
+    </script>
 </body>
 </html>

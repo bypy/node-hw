@@ -4,9 +4,15 @@ const fs = require('fs');
 const sha256 = require('js-sha256').sha256;
 const Busboy = require('busboy');
 const uuid = require('uuid-v4');
+const { Server } = require("ws");
 
 const webserver = express();
 const port = 7980;
+const wsport = 7981;
+const wss = new Server({ port: wsport });
+
+webserver.use(express.static(path.join(__dirname, 'static')));
+
 const uploadPath = path.join(__dirname, 'upload'); // путь к каталогу для помещения загруженных пользователями файлов
 const dbPath = path.join(__dirname, 'data'); // путь к каталогу файловой базы данных с информацией о загруженных файлах (нужна для восстановления хэша после возможного рестарта сервера)
 const deletedPath = path.join(__dirname, 'deleted');
@@ -17,7 +23,7 @@ let nextSaveId = fileInfoArr.length ; // идентификатор для со�
 let mainPageContent = fs.readFileSync(mainPagePath, 'utf8'); // "пустышка" главной страницы для подстановки в неё html-кода таблицы с закачками
 let mainPageHash = sha256(mainPageContent); // для проверки возможности ответить 304 будем подсчитывать хэш главной старницы после каждого изменения
 const fourOfour = '404.html';
-const fileMissingWarn = 'ФАЙЛ УДАЛЕН!';
+
 
 // сортирует список загрузок в порядке убывания очередности загрузки
 const sortIdKeys = (prev, next) => {
@@ -45,10 +51,28 @@ const restoreFileInfo2Hash = async (idsArr, done) => {
 };
 
 
-// запуск слушателя запросов
+// запуск слушателей http- и ws-сообщений
 const startWebServer = () => {
     webserver.listen(port , () => {
+        // http
         console.log(`Listening port ${port}...`);
+        // ws
+        wss.on('connection', socket => {
+            socket.send('hello from storage server to client!');
+            console.log(wss.clients);
+    
+            socket.on('message', message => {
+                console.log(message);
+            });
+    
+            socket.on('close', () => {
+                console.log('socket disconnected');
+            });
+    
+            console.log('new socket connected');
+        });
+
+        console.log('upload server waiting for connections on ws://localhost:'+wsport); 
     });
 };
 
@@ -84,16 +108,12 @@ const storeFileInfo = data => {
 const getDownloadsMarkup = () => {
     let ids = Object.keys(fileInfoHash);
     ids.sort(sortIdKeys);
-    let tableRows = ids.map( id => {
-        if (fileInfoHash[id]['comment'] == fileMissingWarn)
-            return null
-        else {
-            return `<tr><td>${fileInfoHash[id]['origFN']}</td>
-                    <td>${fileInfoHash[id]['comment']}</td>
-                    <td><a href="/${id.toString()}">Скачать файл<a></td>
-                    </tr>` 
-        } 
-    });
+    let tableRows = ids.map( id => 
+        `<tr><td>${fileInfoHash[id]['origFN']}</td>
+            <td>${fileInfoHash[id]['comment']}</td>
+            <td><a href="/${id.toString()}">Скачать файл</a></td>
+        </tr>`
+    );
     return tableRows.join('\n');
 };
 
@@ -138,7 +158,7 @@ const moveFile = (srcFilePath, targetFilePath) => {
                         reject(err);
                     else
                         resolve();
-                })
+                });
             });
     });
 };
@@ -166,7 +186,7 @@ const removeDeletedFromDB = async uploadsList => {
 };
 
 
-webserver.use(express.static(path.join(__dirname, 'static')));
+
 
 
 webserver.get('/:id', (req, res, next) => {
@@ -183,7 +203,7 @@ webserver.get('/:id', (req, res, next) => {
             res.sendFile(downloadFilePath, async err => {
                 if (err) {
                     // если файл не найден
-                    console.log(err);
+                    console.log(`Не найден файл ${fileInfo.saveFN} в каталоге загрузок по запросу на скачивание файла ${fileInfo.origFN}`);
                     res.setHeader('Content-Type', 'text/html');
                     res.removeHeader('Content-Disposition');
                     res.status(404).sendFile(path.join(__dirname, 'static', fourOfour));
@@ -199,10 +219,9 @@ webserver.get('/:id', (req, res, next) => {
         next();
 });
 
-
+// То, что я искал!!! Простейший редирект,  невидимый для фронта!
 webserver.get('/', async (req, res, next) => { 
     //обращение к / - рендерим как /upload;
-    console.log("Обращение к главной");
     req.url='/upload';
     next();
 });
@@ -232,13 +251,16 @@ webserver.post('/upload', (req, res) => {
     
     const uploadFileInfo = {}; // имя файла, временное имя файла для хранения и комментарий к файлу фиксируем здесь
     const contentLength = req.headers['content-length'];
-
     
     const noFileResponse = () => {
         res.send('<p>Вы не выбрали файл для загрузки. Вернитесь <a href="/" style="font-size: 2em;">на главную</a>.</p>');
     };
 
-    
+    const sendProgress = (frac) => {
+        let percent = frac*100;
+        console.log(wss);
+    };
+
     try {
         const busboy = new Busboy({ headers: req.headers });
         req.pipe(busboy);
@@ -251,16 +273,24 @@ webserver.post('/upload', (req, res) => {
         });
 
         busboy.on('file', (fieldname, file, filename) => {
+            
+
             if (filename === '' || fieldname !== 'attachedFile') {
                 noFileResponse();
                 return;
             }
-            console.log('Здесь установить сокет-соединение');
+
+            //console.log('Здесь установить сокет-соединение');
+            
+
             let fileSize = 0;
+
             file.on('data', dataChunk => {
                 fileSize += dataChunk.length;
                 console.log(`${contentLength - fileSize} bytes remains`);
+                sendProgress(fileSize/contentLength);
             });
+
             let saveFileName = uuid() + path.extname(filename);
             uploadFileInfo.saveFN = saveFileName;
             uploadFileInfo.origFN = filename;
