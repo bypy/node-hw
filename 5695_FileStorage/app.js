@@ -11,6 +11,8 @@ const port = 7980;
 const wsport = 7981;
 const wss = new Server({ port: wsport });
 
+const wsClients = {};
+
 webserver.use(express.static(path.join(__dirname, 'static')));
 
 const uploadPath = path.join(__dirname, 'upload'); // путь к каталогу для помещения загруженных пользователями файлов
@@ -58,9 +60,12 @@ const startWebServer = () => {
         console.log(`Listening port ${port}...`);
         // ws
         wss.on('connection', socket => {
-            socket.send('hello from storage server to client!');
-            console.log(wss.clients);
-    
+            let wsId = uuid();
+            // держи id
+            socket.send('#'+wsId);
+            // запишем клиента в хэш сокет-соединений
+            wsClients[wsId] = socket;
+
             socket.on('message', message => {
                 console.log(message);
             });
@@ -248,6 +253,8 @@ webserver.get('/upload', (req, res) => {
 });
 
 webserver.post('/upload', (req, res) => {
+
+    const soсketId = req.headers['x-socket-id'];
     
     const uploadFileInfo = {}; // имя файла, временное имя файла для хранения и комментарий к файлу фиксируем здесь
     const contentLength = req.headers['content-length'];
@@ -258,7 +265,7 @@ webserver.post('/upload', (req, res) => {
 
     const sendProgress = (frac) => {
         let percent = frac*100;
-        console.log(wss);
+        wsClients[soсketId].send(percent);
     };
 
     try {
@@ -306,15 +313,18 @@ webserver.post('/upload', (req, res) => {
                 return;
             } else {
                 console.log('Здесь разорвать сокет-соединение');
+                wsClients[soсketId].terminate();
+                delete wsClients[soсketId];
                 console.log('Ready to save in hash');
                 storeFileInfo(uploadFileInfo)
                     .then( () => {
-                        res.redirect(303, '/'); // GET
+                        //res.redirect(303, '/'); // GET
+                        res.send('OK'); // неважно что
                     })
                     .catch( (err) => {
-                        console.log("Catched error: ");
                         console.log(err);
-                        res.redirect(303, '/'); // GET
+                        //res.redirect(303, '/'); // GET
+                        res.send('ERROR'); // неважно что
                     });
             }
         });
