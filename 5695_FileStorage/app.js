@@ -91,7 +91,7 @@ const startWebServer = () => {
             
         });
 
-        console.log('upload server waiting for connections on ws://localhost:'+wsport); 
+        console.log('upload server waiting for connections on ws://178.172.195.18:'+wsport); 
     });
 };
 

@@ -31,6 +31,8 @@
     </table>
     <script>
         (function() {
+	    var targetURL = '/upload';
+	    var wsURL= 'ws://178.172.195.18:7981';
             var progress = document.getElementsByClassName('progress')[0];
             var percents = document.getElementsByClassName('percents')[0];
             var commentInput = document.getElementById('comment');
@@ -45,7 +47,6 @@
             var controller = new AbortController(); // для прерывания Fetch
 
             var sendData = function(data) {
-                var targetURL = '/upload';
                 var formData = new FormData();
                 formData.append('comment', data.comment);
                 formData.append('attachedFile', data.attachedFile);
@@ -113,10 +114,9 @@
                     var uploadFormData = getUploadFormData(uploadForm);
 
                     // инициализация ws-клиента
-                    var url = 'ws://localhost:7981';
                     console.log("Trying to connect to server");
                     
-                    var connection = new WebSocket(url);
+                    var connection = new WebSocket(wsURL);
 
                     connection.onopen = function(event) {
                         connection.send('give me id');
