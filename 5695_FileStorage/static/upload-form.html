@@ -44,10 +44,8 @@
             var controller = new AbortController(); // для прерывания Fetch
 
             var sendData = function(data) {
-                //var targetURL = 'http://localhost:7980/upload';
                 var targetURL = '/upload';
                 var formData = new FormData();
-                //formData.append('connId', data.connId);
                 formData.append('comment', data.comment);
                 formData.append('attachedFile', data.attachedFile);
                 
@@ -69,11 +67,12 @@
                     })
                     .then( function(text) {
                         console.log(text);
-                        location.pathname = '/';
                     })
                     .catch(function(error){
                         console.log(error);
-                        location.pathname = '/';
+                    })
+                    .finally(function(){
+                    	location.pathname = '/';
                     });
             };
 
@@ -97,6 +96,7 @@
                         controller.abort(); // асинхронное прерывание fetch
                         currentConnection.send('STOP');
                         currentConnection.close();
+                        
                     }
 
                     EO = EO || window.event;
@@ -124,7 +124,6 @@
                             sendData(uploadFormData);
                         } else {
                             // статистика загрузки для отображения
-                            console.log('сообщение от сервера: '+event.data);
                             updateProgressBar(event.data);
                         }
 
@@ -135,6 +134,7 @@
                     connection.onclose = function() {
                         console.log("соединение с сервером закрыто");
                         connection=null;
+                        location.pathname = '/'; 
                     };
                     // выполняющаяся закачка
                     currentConnection = connection;

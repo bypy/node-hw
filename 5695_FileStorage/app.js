@@ -18,6 +18,14 @@ webserver.use(express.static(path.join(__dirname, 'static')));
 const uploadPath = path.join(__dirname, 'upload'); // путь к каталогу для помещения загруженных пользователями файлов
 const dbPath = path.join(__dirname, 'data'); // путь к каталогу файловой базы данных с информацией о загруженных файлах (нужна для восстановления хэша после возможного рестарта сервера)
 const deletedPath = path.join(__dirname, 'deleted');
+
+/* ! создать каталоги при их отсутствии ! */
+[uploadPath, dbPath, deletedPath].forEach( pth => {
+    if (!fs.existsSync(pth)){
+        fs.mkdirSync(pth);
+    }  
+})
+
 const mainPagePath = path.join(__dirname, 'static', 'upload-form.html');
 const fileInfoHash = {}; // хэш для хранения данных о загруженных файлах
 const fileInfoArr = fs.readdirSync(dbPath); // список записей о загруженных файлах в файловой ДБ
@@ -320,14 +328,14 @@ webserver.post('/upload', (req, res) => {
                 noFileResponse();
                 return;
             } else {
-                
+                // данные о вновь загруженном файле записываются в хэш и файловую БД
                 storeFileInfo(uploadFileInfo)
                     .then( () => {
-                        res.send('OK'); // неважно что
+                        res.send('<!DOCTYPE html><html lang="ru"><p>status: OK</p></html>');
                     })
                     .catch( (err) => {
                         console.log(err);
-                        res.send('ERROR'); // неважно что
+                        res.send('<p>status: ERROR</p>');
                     })
                     ;
             }
