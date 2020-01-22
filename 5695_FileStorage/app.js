@@ -31,7 +31,7 @@ const fileInfoHash = {}; // хэш для хранения данных о за�
 const fileInfoArr = fs.readdirSync(dbPath); // список записей о загруженных файлах в файловой ДБ
 let nextSaveId = fileInfoArr.length ; // идентификатор для сохранения в файловую БД следующего файла с описанием новой загрузки. При первом запуске будет равен нулю.
 let mainPageContent = fs.readFileSync(mainPagePath, 'utf8'); // "пустышка" главной страницы для подстановки в неё html-кода таблицы с закачками
-let mainPageHash = sha256(mainPageContent); // для проверки возможности ответить 304 будем подсчитывать хэш главной старницы после каждого изменения
+let mainPageHash = null; // для проверки возможности ответить 304 будем подсчитывать хэш главной старницы после каждого загруженного файла
 const fourOfour = '404.html';
 
 
@@ -140,7 +140,6 @@ const getDownloadsMarkup = () => {
 // помещает обновленный код html-таблицы для скачивания файлов в разметку главной страницы
 const getPageMarkup = downloadsMarkup => {
     const newMainMarkup = mainPageContent.split('{$}').join(downloadsMarkup);
-    mainPageHash = sha256(newMainMarkup); // актуализируем хэш-сумму главной страницы
     return newMainMarkup;
 };
 
@@ -238,6 +237,7 @@ webserver.get('/:id', (req, res, next) => {
         next();
 });
 
+
 // То, что я искал!!! Простейший редирект,  невидимый для фронта!
 webserver.get('/', async (req, res, next) => { 
     //обращение к / - рендерим как /upload;
@@ -252,13 +252,21 @@ webserver.get('/upload', (req, res) => {
         res.status(304).end();
         console.log('Cached');
     } else {
-        res.setHeader('Content-Type', 'text/html; charset=UTF-8');
-        res.setHeader('ETag', mainPageHash);
-        res.setHeader('Cache-Control', 'public, max-age=0');
         try {
-            let downloadsMarkup = getDownloadsMarkup();
-            let pageMarkup = getPageMarkup(downloadsMarkup);
-            res.send(pageMarkup);
+            res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+            res.setHeader('Cache-Control', 'public, max-age=0');
+            if (!mainPageHash) {
+                // запросов страницы в этом процессе еще не было
+                let emptyMainPageContent = mainPageContent.replace(/^\s*{\$}/m, ''); // маркер для подстановки разметки html таблицы
+                // актуализирую хэш
+                mainPageHash = sha256(emptyMainPageContent);
+                res.setHeader('ETag', mainPageHash);
+                res.send(emptyMainPageContent);
+            } else {
+                res.setHeader('ETag', mainPageHash);
+                res.send(mainPageContent);
+            }
+
         } catch(err) {
             console.log(err);
             res.end(500);
@@ -273,9 +281,9 @@ webserver.post('/upload', (req, res) => {
     const uploadFileInfo = {}; // имя файла, временное имя файла для хранения и комментарий к файлу фиксируем здесь
     const contentLength = req.headers['content-length'];
     
-    const noFileResponse = () => {
-        res.send('<p>Вы не выбрали файл для загрузки. Вернитесь <a href="/" style="font-size: 2em;">на главную</a>.</p>');
-    };
+    // const noFileResponse = () => {
+    //     res.send('<p>Вы не выбрали файл для загрузки. Вернитесь <a href="/" style="font-size: 2em;">на главную</a>.</p>');
+    // };
 
     const sendProgress = (frac) => {
         let percent = frac*100;
@@ -294,19 +302,16 @@ webserver.post('/upload', (req, res) => {
 
         busboy.on('field', (fieldname, val) => {
             if (fieldname === 'comment') {
-                // 
                 uploadFileInfo[fieldname] = val;
             }
         });
 
         busboy.on('file', (fieldname, file, filename) => {
-            
 
             if (filename === '' || fieldname !== 'attachedFile') {
-                noFileResponse();
+                //noFileResponse();
                 return;
             }
-         
 
             let fileSize = 0;
 
@@ -323,19 +328,28 @@ webserver.post('/upload', (req, res) => {
         });
 
         busboy.on('finish', function() {
+
             if ( !uploadFileInfo.hasOwnProperty('origFN') ) {
                 // файл обязателен (а комментарий -- нет)
-                noFileResponse();
+                //noFileResponse();
                 return;
             } else {
+                res.setHeader('Content-Type', 'text/plain');
                 // данные о вновь загруженном файле записываются в хэш и файловую БД
                 storeFileInfo(uploadFileInfo)
                     .then( () => {
-                        res.send('<!DOCTYPE html><html lang="ru"><p>status: OK</p></html>');
+                        // сразу после успешного сохранения файла и данных о нем в хэш и БД
+                        // формируется новый код html-таблицы с учетом последней загрузки
+                        let downloadsMarkup = getDownloadsMarkup();
+                        // формируется вся разметка главной страницы
+                        mainPageContent = getPageMarkup(downloadsMarkup);
+                        // актуализируется хэш-сумма главной страницы
+                        mainPageHash = sha256(mainPageContent);
+                        res.send('OK');
                     })
                     .catch( (err) => {
                         console.log(err);
-                        res.send('<p>status: ERROR</p>');
+                        res.send('ERROR SAVING FILE');
                     })
                     ;
             }

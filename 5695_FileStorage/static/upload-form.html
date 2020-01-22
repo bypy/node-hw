@@ -33,6 +33,7 @@
         (function() {
             var progress = document.getElementsByClassName('progress')[0];
             var percents = document.getElementsByClassName('percents')[0];
+            var commentInput = document.getElementById('comment');
 
             var getUploadFormData = function(form) {
                 var dataH = {};
@@ -66,14 +67,20 @@
                         return response.text();
                     })
                     .then( function(text) {
+                        // загрузка успешна, обновить страницу
+                        location.pathname = '/';
                         console.log(text);
                     })
                     .catch(function(error){
                         console.log(error);
                     })
                     .finally(function(){
-                    	location.pathname = '/';
+                        commentInput.disabled = false;	
                     });
+
+                // запретить добавлять комментарий в процессе "долгой" загрузки :)
+                commentInput.disabled = true;
+
             };
 
             var updateProgressBar = function(floatValueS) {
