@@ -30,7 +30,8 @@ const mainPagePath = path.join(__dirname, 'static', 'upload-form.html');
 const fileInfoHash = {}; // хэш для хранения данных о загруженных файлах
 const fileInfoArr = fs.readdirSync(dbPath); // список записей о загруженных файлах в файловой ДБ
 let nextSaveId = fileInfoArr.length ; // идентификатор для сохранения в файловую БД следующего файла с описанием новой загрузки. При первом запуске будет равен нулю.
-let mainPageContent = fs.readFileSync(mainPagePath, 'utf8'); // "пустышка" главной страницы для подстановки в неё html-кода таблицы с закачками
+let emptyPage = fs.readFileSync(mainPagePath, 'utf8'); // "пустышка" главной страницы для подстановки в неё html-кода таблицы с закачками
+let currentMainPage = null;
 let mainPageHash = null; // для проверки возможности ответить 304 будем подсчитывать хэш главной старницы после каждого загруженного файла
 const fourOfour = '404.html';
 
@@ -56,6 +57,13 @@ const restoreFileInfo2Hash = async (idsArr, done) => {
             continue;
         }
     }
+
+    let downloadsMarkup = getDownloadsMarkup();
+    // формируется вся разметка главной страницы
+    currentMainPage = getPageMarkup(downloadsMarkup);
+    // актуализируется хэш-сумма главной страницы
+    mainPageHash = sha256(currentMainPage);
+
     // выполним опциональный колбек (запуск слушателя запросов)
     if (done) done();
 };
@@ -96,13 +104,6 @@ const startWebServer = () => {
 };
 
 
-// запуск слушателя запросов
-if (nextSaveId > 0)
-    // с восставновлением данных о загруженных файлах в хэш в памяти (перезапуск сервера)
-    restoreFileInfo2Hash(fileInfoArr, startWebServer);
-else
-    // первый запуск
-    startWebServer();
 
 
 // помещает данные о только что загруженном файле в файловую БД на json-ах и в хэш
@@ -139,8 +140,7 @@ const getDownloadsMarkup = () => {
 
 // помещает обновленный код html-таблицы для скачивания файлов в разметку главной страницы
 const getPageMarkup = downloadsMarkup => {
-    const newMainMarkup = mainPageContent.split('{$}').join(downloadsMarkup);
-    return newMainMarkup;
+    return emptyPage.split('{$}').join(downloadsMarkup);
 };
 
 
@@ -204,8 +204,24 @@ const removeDeletedFromDB = async uploadsList => {
 };
 
 
+// запуск слушателя запросов
+if (nextSaveId > 0) {
+    // с восставновлением данных о загруженных файлах в хэш в памяти (перезапуск сервера)
+    restoreFileInfo2Hash(fileInfoArr, startWebServer);
+    // let downloadsMarkup = getDownloadsMarkup();
+    // // формируется вся разметка главной страницы
+    // currentMainPage = getPageMarkup(downloadsMarkup);
+    // // актуализируется хэш-сумма главной страницы
+    // mainPageHash = sha256(currentMainPage);
+} else {
+    // первый запуск
+    startWebServer();
+}
 
 
+
+
+/* ROUTING */
 
 webserver.get('/:id', (req, res, next) => {
     const id = req.params.id;
@@ -238,7 +254,6 @@ webserver.get('/:id', (req, res, next) => {
 });
 
 
-// То, что я искал!!! Простейший редирект,  невидимый для фронта!
 webserver.get('/', async (req, res, next) => { 
     //обращение к / - рендерим как /upload;
     req.url='/upload';
@@ -255,16 +270,19 @@ webserver.get('/upload', (req, res) => {
         try {
             res.setHeader('Content-Type', 'text/html; charset=UTF-8');
             res.setHeader('Cache-Control', 'public, max-age=0');
-            if (!mainPageHash) {
+            if (!mainPageHash || !currentMainPage) {
                 // запросов страницы в этом процессе еще не было
-                let emptyMainPageContent = mainPageContent.replace(/^\s*{\$}/m, ''); // маркер для подстановки разметки html таблицы
+
+                // убираю маркер для подстановки разметки html таблицы
+                currentMainPage = emptyPage.replace(/^\s*{\$}/m, '');
                 // актуализирую хэш
-                mainPageHash = sha256(emptyMainPageContent);
+                mainPageHash = sha256(currentMainPage);
                 res.setHeader('ETag', mainPageHash);
-                res.send(emptyMainPageContent);
+                // отправляю стартовую страницу без загрузок
+                res.send(currentMainPage);
             } else {
                 res.setHeader('ETag', mainPageHash);
-                res.send(mainPageContent);
+                res.send(currentMainPage);
             }
 
         } catch(err) {
@@ -281,9 +299,9 @@ webserver.post('/upload', (req, res) => {
     const uploadFileInfo = {}; // имя файла, временное имя файла для хранения и комментарий к файлу фиксируем здесь
     const contentLength = req.headers['content-length'];
     
-    // const noFileResponse = () => {
-    //     res.send('<p>Вы не выбрали файл для загрузки. Вернитесь <a href="/" style="font-size: 2em;">на главную</a>.</p>');
-    // };
+    const noFileResponse = () => {
+        res.send('<p>Вы не выбрали файл для загрузки. Вернитесь <a href="/" style="font-size: 2em;">на главную</a>.</p>');
+    };
 
     const sendProgress = (frac) => {
         let percent = frac*100;
@@ -309,7 +327,7 @@ webserver.post('/upload', (req, res) => {
         busboy.on('file', (fieldname, file, filename) => {
 
             if (filename === '' || fieldname !== 'attachedFile') {
-                //noFileResponse();
+                noFileResponse();
                 return;
             }
 
@@ -331,7 +349,7 @@ webserver.post('/upload', (req, res) => {
 
             if ( !uploadFileInfo.hasOwnProperty('origFN') ) {
                 // файл обязателен (а комментарий -- нет)
-                //noFileResponse();
+                noFileResponse();
                 return;
             } else {
                 res.setHeader('Content-Type', 'text/plain');
@@ -342,9 +360,9 @@ webserver.post('/upload', (req, res) => {
                         // формируется новый код html-таблицы с учетом последней загрузки
                         let downloadsMarkup = getDownloadsMarkup();
                         // формируется вся разметка главной страницы
-                        mainPageContent = getPageMarkup(downloadsMarkup);
+                        currentMainPage = getPageMarkup(downloadsMarkup);
                         // актуализируется хэш-сумма главной страницы
-                        mainPageHash = sha256(mainPageContent);
+                        mainPageHash = sha256(currentMainPage);
                         res.send('OK');
                     })
                     .catch( (err) => {
